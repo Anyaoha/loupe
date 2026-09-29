@@ -1,0 +1,138 @@
+# Loupe
+
+A small lens on team collaboration signals.
+
+Loupe syncs a GitHub repository into a canonical local store, computes collaboration metrics
+over any time window, detects what drifted versus the preceding period, and asks an LLM to
+explain it. Every number the model cites is checked against the real metrics before the
+narrative is shown, and the confidence score is computed from that check rather than copied
+from the model.
+
+```
+GitHub GraphQL ──► adapter ──► SQLite (canonical WorkItem / ActivityEvent)
+                                   │
+                                   ▼
+                     metrics engine ──► signal detectors ──► facts table
+                                                                 │
+                                        Claude (Anthropic / Bedrock / mock) ◄──┘
+                                                                 │
+                                                  claim verifier + confidence
+                                                                 │
+                                   FastAPI  /metrics  /signals  /insights  /llm/traces
+                                                                 │
+                                                        React UI (optional)
+```
+
+## 60-second quickstart
+
+**Option A: Docker, no keys.** Serves a synthetic demo repository so everything is clickable immediately.
+
+```bash
+cp .env.example .env            # leave the keys blank for now
+docker compose up --build       # API on :8000, UI on :8080
+open http://localhost:8080
+```
+
+**Option B: local dev.**
+
+```bash
+make install                    # venv + backend deps + frontend deps
+cp .env.example .env
+make seed-demo                  # optional keyless sample data
+make dev                        # API :8000 (reload) + UI :5173
+```
+
+**With real data and a real model**, set in `.env`:
+
+```
+LOUPE_GITHUB_TOKEN=ghp_...          # read-only: public_repo (classic) or Contents/PRs/Issues:read (fine-grained)
+LOUPE_LLM_PROVIDER=anthropic        # or bedrock (uses the AWS credential chain) or mock
+LOUPE_ANTHROPIC_API_KEY=sk-ant-...
+```
+
+then track a repository and wait for the first sync (a few seconds to a couple of minutes depending on activity; 180 days are backfilled):
+
+```bash
+curl -s -X POST localhost:8000/api/v1/repos -H 'content-type: application/json' -d '{"owner":"fastapi","name":"fastapi"}'
+curl -s localhost:8000/api/v1/repos/fastapi/fastapi/sync | jq .sync.status
+```
+
+## The API
+
+Interactive docs at `http://localhost:8000/docs`.
+
+| Method | Path | What it returns |
+|---|---|---|
+| `POST` | `/api/v1/repos` | Track a repo; `202` and schedules a sync (`200` if already tracked). `Location` points at the sync status. |
+| `GET` | `/api/v1/repos` | Tracked repos with sync state. |
+| `GET` / `POST` | `/api/v1/repos/{owner}/{name}/sync` | Sync status / trigger a sync now. |
+| `GET` | `/api/v1/repos/{owner}/{name}/metrics?from&to` | Totals, leaderboards, flow stats, open/stale PRs, concentration, weekly series. |
+| `GET` | `/api/v1/repos/{owner}/{name}/signals?from&to` | Detected drift vs the preceding equal-length window, plus the **facts table**. |
+| `POST` | `/api/v1/repos/{owner}/{name}/insights?from&to[&refresh=true]` | LLM narrative with root-cause hypothesis, verified evidence chain, computed confidence. `201` fresh, `200` cached. |
+| `GET` | `/api/v1/llm/traces` | Recent model calls with OTel `gen_ai.*` attributes, latency and estimated cost. |
+
+`from` / `to` accept ISO dates; a bare `to` date is inclusive of that day. Defaults to the trailing 30 days. Responses carry `X-Loupe-Coverage` (fraction of the window the local store can vouch for) and a `Warning` header while a sync is running.
+
+```bash
+R=localhost:8000/api/v1/repos/demo/sample-service     # trailing 30 days when from/to are omitted
+curl -s "$R/signals" | jq '.signals[] | {severity, title}'
+curl -s -X POST "$R/insights" | jq '{headline, confidence, confidence_breakdown, verification}'
+```
+
+## What the metrics mean and why these
+
+The assignment asks for one interesting insight over a period. Loupe computes the standard leaderboards (committers, PR authors, reviewers, mergers, lines changed) because they are table stakes, then focuses on the things that tell a manager something a leaderboard cannot:
+
+| Signal | What it measures | Why it matters |
+|---|---|---|
+| **Review concentration** | Share of reviews done by the single busiest reviewer | One person at 60%+ is a bottleneck and a single point of failure for the whole team's throughput. |
+| **Time-to-merge drift** | Median (and p90) hours from PR open to merge, vs the previous period | The most direct measure of flow. A 2x jump with the same volume means review or CI got slower, not that the work got bigger. |
+| **Merge throughput change** | PRs merged vs previous period, with weekly breakdown | Sustained drops matter; single bad weeks are noise. The weekly series lets the reader tell them apart. |
+| **Unreviewed merges** | Share of merged PRs with zero reviews | Rises when people are stretched. A leading indicator of quality problems. |
+| **Committer churn** | Active committers vs previous period, naming who went quiet | Turns "velocity dropped" into "velocity dropped because two people stopped committing", which is a root cause a manager can act on. |
+| **Commit bus factor** | Fewest people whose commits cover 50% of the total | Bus factor of 1 on an active repo is a staffing risk. |
+| **Stale PR backlog** | Open PRs older than 14 days at the window end | Abandoned work and reviewer avoidance both show up here first. |
+| **Issue turnaround drift** | Median hours from issue open to close, vs previous period | Same idea as time-to-merge, for the support/bug side. |
+
+Baseline is always the equal-length period immediately before the window. Simple to explain, easy to check, and it makes every signal a like-for-like comparison. The trade-off is discussed in `NOTES.md`.
+
+## How the insight stays honest
+
+1. The model receives a flat **facts table** (`cur.totals.prs_merged: 28`, `cur.reviewer.priya.reviews: 25`, …) and is told these are the only numbers that exist.
+2. It must return structured JSON: headline, narrative, optional root-cause hypothesis, self-reported confidence, and an evidence list where each claim cites a fact id and the value it used.
+3. The **verifier** checks every citation: does the fact id exist, does the quoted value match (with tolerance for rounding and percent-vs-ratio), did the narrative name any `@person` who is not in the data.
+4. **Confidence is computed**: `model_confidence × (1 − penalty)`, capped by data coverage (`0.5 + 0.5 × covered_ratio`) and capped at 0.5 if fewer than two claims verified. The breakdown is returned so the reader sees why.
+
+Failed claims are still shown, struck through, with the actual value next to them. Hiding them would hide the model's error rate.
+
+## Tests and evals
+
+```bash
+make test          # 35 tests: metrics correctness against hand-computed fixtures, signal thresholds,
+                   # verifier adversarial cases, GitHub adapter pagination/errors (mocked), API semantics
+make evals         # prompt eval harness, deterministic mock provider, no network
+make evals-live    # same harness against the configured real model (costs a few cents)
+```
+
+The eval harness runs golden cases (quiet repo, drifting repo, partial coverage) through the full synthesize → verify path and gates on: evidence verification rate, confidence band, no invented people, correct top signal, brevity, and honesty about partial data. It also runs **guardrail regressions**: a deliberately misbehaving mock (hallucinated numbers, invented fact ids, unknown people) and asserts the verifier catches each one and lowers confidence. If those ever pass too easily, the guardrail is broken, not the model.
+
+Run it before changing `PROMPT_VERSION` or swapping models.
+
+## Layout
+
+```
+backend/loupe/
+  adapters/      SourceAdapter protocol + GitHub GraphQL implementation
+  models.py      canonical storage: Repository, SyncState, WorkItem, ActivityEvent, Insight, LlmTrace
+  sync.py        incremental sync with high-water marks and dialect-aware upserts
+  metrics/       MetricsReport over a window (SQL aggregates + small Python percentiles)
+  signals/       detectors + facts table
+  insights/      versioned prompt, synthesizer, claim verifier
+  llm/           provider protocol, Anthropic / Bedrock / Mock, OTel-named tracing
+  api/           FastAPI app, routes, validated deps, background SyncManager
+backend/tests/   pytest
+backend/evals/   eval harness + committed golden cases
+frontend/        React + Vite + TypeScript, no UI framework, hand-rolled SVG
+```
+
+See `NOTES.md` for architecture decisions, trade-offs, what I'd do next, and how AI tools were used.

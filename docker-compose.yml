@@ -1,0 +1,24 @@
+services:
+  api:
+    build: ./backend
+    env_file: .env
+    environment:
+      LOUPE_DATABASE_URL: sqlite:////data/loupe.db
+      LOUPE_CORS_ORIGINS: '["http://localhost:5173","http://localhost:8080"]'
+    volumes:
+      - loupe-data:/data
+    ports:
+      - "8000:8000"
+    # Seed the keyless demo repo on first boot, then serve.
+    command: sh -c "python -m loupe.cli seed-demo && uvicorn loupe.main:app --host 0.0.0.0 --port 8000"
+
+  web:
+    build: ./frontend
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "8080:80"
+
+volumes:
+  loupe-data:

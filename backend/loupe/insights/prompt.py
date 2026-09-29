@@ -21,7 +21,7 @@ Rules:
   2. Do not invent people. Only name a person if their login appears in a fact id or fact value.
   3. If the signals support a root cause, state one hypothesis and how confident you are in it. If they do not, set root_cause to null. Do not speculate beyond the data.
   4. Prefer the strongest signal. Two or three sentences of narrative. No bullet points, no headers, no preamble.
-  5. If coverage.covered_ratio is below 1.0, say so briefly and lower your confidence.
+  5. If coverage.covered_ratio is below 0.95, say so briefly and lower your confidence.
   6. Respond with a single JSON object and nothing else, matching exactly:
 
 {

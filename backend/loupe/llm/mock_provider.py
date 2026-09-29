@@ -53,7 +53,7 @@ class MockProvider:
             hypothesis = None
 
         covered = float((payload.get("coverage") or {}).get("covered_ratio", 1.0))
-        if covered < 1.0:
+        if covered < 0.95:
             narrative += f" Note: synced data covers only {covered:.0%} of this window, so treat these figures as partial."
 
         if self.invent_facts:
