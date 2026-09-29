@@ -52,6 +52,10 @@ class MockProvider:
             narrative = "Throughput, review load and merge times are within the range of the previous period. Nothing stands out as needing intervention."
             hypothesis = None
 
+        covered = float((payload.get("coverage") or {}).get("covered_ratio", 1.0))
+        if covered < 1.0:
+            narrative += f" Note: synced data covers only {covered:.0%} of this window, so treat these figures as partial."
+
         if self.invent_facts:
             evidence.append({"fact_id": "cur.totals.deploys", "claim": "deploys were 42", "quoted_value": 42})
         if self.unknown_actor:

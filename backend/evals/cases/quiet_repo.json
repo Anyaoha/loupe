@@ -1,0 +1,383 @@
+{
+  "name": "quiet_repo",
+  "expectations": {
+    "expect_top_signal": null,
+    "confidence": [
+      0.3,
+      0.75
+    ],
+    "root_cause_allowed": false
+  },
+  "report": {
+    "repository": {
+      "source": "github",
+      "owner": "acme",
+      "name": "widgets",
+      "default_branch": "main"
+    },
+    "window": {
+      "start": "2026-03-01T00:00:00Z",
+      "end": "2026-03-31T00:00:00Z",
+      "days": 30.0
+    },
+    "baseline_window": {
+      "start": "2026-01-30T00:00:00Z",
+      "end": "2026-03-01T00:00:00Z",
+      "days": 30.0
+    },
+    "coverage": {
+      "backfill_from": "2025-10-01T00:00:00Z",
+      "synced_to": "2026-04-01T00:00:00Z",
+      "covered_ratio": 1.0,
+      "sync_status": "ok"
+    },
+    "signals": [],
+    "facts": {
+      "cur.totals.commits": {
+        "label": "commits to default branch",
+        "value": 10,
+        "unit": null
+      },
+      "cur.totals.prs_opened": {
+        "label": "PRs opened",
+        "value": 7,
+        "unit": null
+      },
+      "cur.totals.prs_merged": {
+        "label": "PRs merged",
+        "value": 5,
+        "unit": null
+      },
+      "cur.totals.prs_closed_unmerged": {
+        "label": "PRs closed without merge",
+        "value": 1,
+        "unit": null
+      },
+      "cur.totals.issues_opened": {
+        "label": "issues opened",
+        "value": 4,
+        "unit": null
+      },
+      "cur.totals.issues_closed": {
+        "label": "issues closed",
+        "value": 3,
+        "unit": null
+      },
+      "cur.totals.reviews": {
+        "label": "reviews submitted",
+        "value": 7,
+        "unit": null
+      },
+      "cur.totals.active_committers": {
+        "label": "distinct committers",
+        "value": 3,
+        "unit": null
+      },
+      "cur.totals.active_reviewers": {
+        "label": "distinct reviewers",
+        "value": 3,
+        "unit": null
+      },
+      "cur.flow.time_to_merge_median": {
+        "label": "median time to merge",
+        "value": 72.0,
+        "unit": "hours"
+      },
+      "cur.flow.time_to_merge_p90": {
+        "label": "p90 time to merge",
+        "value": 182.4,
+        "unit": "hours"
+      },
+      "cur.flow.issue_turnaround_median": {
+        "label": "median issue turnaround",
+        "value": 120.0,
+        "unit": "hours"
+      },
+      "cur.flow.merged_without_review": {
+        "label": "PRs merged with zero reviews",
+        "value": 1,
+        "unit": null
+      },
+      "cur.flow.merged_without_review_ratio": {
+        "label": "share of merged PRs with zero reviews",
+        "value": 0.2,
+        "unit": "ratio"
+      },
+      "cur.open.open_prs": {
+        "label": "PRs open at window end",
+        "value": 2,
+        "unit": null
+      },
+      "cur.open.stale_prs": {
+        "label": "open PRs older than 14 days at window end",
+        "value": 1,
+        "unit": null
+      },
+      "cur.concentration.review_top1_share": {
+        "label": "share of reviews by the single busiest reviewer",
+        "value": 0.5714,
+        "unit": "ratio"
+      },
+      "cur.concentration.review_top2_share": {
+        "label": "share of reviews by the two busiest reviewers",
+        "value": 0.8571,
+        "unit": "ratio"
+      },
+      "cur.concentration.commit_top1_share": {
+        "label": "share of commits by the single busiest committer",
+        "value": 0.6,
+        "unit": "ratio"
+      },
+      "cur.concentration.commit_bus_factor": {
+        "label": "fewest committers covering 50% of commits",
+        "value": 1,
+        "unit": null
+      },
+      "base.totals.commits": {
+        "label": "commits to default branch",
+        "value": 1,
+        "unit": null
+      },
+      "base.totals.prs_opened": {
+        "label": "PRs opened",
+        "value": 2,
+        "unit": null
+      },
+      "base.totals.prs_merged": {
+        "label": "PRs merged",
+        "value": 1,
+        "unit": null
+      },
+      "base.totals.prs_closed_unmerged": {
+        "label": "PRs closed without merge",
+        "value": 0,
+        "unit": null
+      },
+      "base.totals.issues_opened": {
+        "label": "issues opened",
+        "value": 1,
+        "unit": null
+      },
+      "base.totals.issues_closed": {
+        "label": "issues closed",
+        "value": 1,
+        "unit": null
+      },
+      "base.totals.reviews": {
+        "label": "reviews submitted",
+        "value": 1,
+        "unit": null
+      },
+      "base.totals.active_committers": {
+        "label": "distinct committers",
+        "value": 1,
+        "unit": null
+      },
+      "base.totals.active_reviewers": {
+        "label": "distinct reviewers",
+        "value": 1,
+        "unit": null
+      },
+      "base.flow.time_to_merge_median": {
+        "label": "median time to merge",
+        "value": 120.0,
+        "unit": "hours"
+      },
+      "base.flow.time_to_merge_p90": {
+        "label": "p90 time to merge",
+        "value": 120.0,
+        "unit": "hours"
+      },
+      "base.flow.issue_turnaround_median": {
+        "label": "median issue turnaround",
+        "value": 24.0,
+        "unit": "hours"
+      },
+      "base.flow.merged_without_review": {
+        "label": "PRs merged with zero reviews",
+        "value": 0,
+        "unit": null
+      },
+      "base.flow.merged_without_review_ratio": {
+        "label": "share of merged PRs with zero reviews",
+        "value": 0.0,
+        "unit": "ratio"
+      },
+      "base.open.open_prs": {
+        "label": "PRs open at window end",
+        "value": 1,
+        "unit": null
+      },
+      "base.open.stale_prs": {
+        "label": "open PRs older than 14 days at window end",
+        "value": 0,
+        "unit": null
+      },
+      "base.concentration.review_top1_share": {
+        "label": "share of reviews by the single busiest reviewer",
+        "value": 1.0,
+        "unit": "ratio"
+      },
+      "base.concentration.review_top2_share": {
+        "label": "share of reviews by the two busiest reviewers",
+        "value": 1.0,
+        "unit": "ratio"
+      },
+      "base.concentration.commit_top1_share": {
+        "label": "share of commits by the single busiest committer",
+        "value": 1.0,
+        "unit": "ratio"
+      },
+      "base.concentration.commit_bus_factor": {
+        "label": "fewest committers covering 50% of commits",
+        "value": 1,
+        "unit": null
+      },
+      "cur.reviewer.bob.reviews": {
+        "label": "reviews by bob",
+        "value": 4,
+        "unit": null
+      },
+      "cur.reviewer.bob.approvals": {
+        "label": "approvals by bob",
+        "value": 3,
+        "unit": null
+      },
+      "cur.reviewer.alice.reviews": {
+        "label": "reviews by alice",
+        "value": 2,
+        "unit": null
+      },
+      "cur.reviewer.alice.approvals": {
+        "label": "approvals by alice",
+        "value": 2,
+        "unit": null
+      },
+      "cur.reviewer.carol.reviews": {
+        "label": "reviews by carol",
+        "value": 1,
+        "unit": null
+      },
+      "cur.reviewer.carol.approvals": {
+        "label": "approvals by carol",
+        "value": 0,
+        "unit": null
+      },
+      "cur.committer.alice.commits": {
+        "label": "commits by alice",
+        "value": 6,
+        "unit": null
+      },
+      "cur.committer.bob.commits": {
+        "label": "commits by bob",
+        "value": 3,
+        "unit": null
+      },
+      "cur.committer.carol.commits": {
+        "label": "commits by carol",
+        "value": 1,
+        "unit": null
+      },
+      "cur.pr_author.alice.prs_merged": {
+        "label": "PRs merged authored by alice",
+        "value": 2,
+        "unit": null
+      },
+      "cur.pr_author.bob.prs_merged": {
+        "label": "PRs merged authored by bob",
+        "value": 2,
+        "unit": null
+      },
+      "cur.pr_author.carol.prs_merged": {
+        "label": "PRs merged authored by carol",
+        "value": 1,
+        "unit": null
+      },
+      "cur.week.1.prs_merged": {
+        "label": "PRs merged in week 1 of window",
+        "value": 2,
+        "unit": null
+      },
+      "cur.week.1.commits": {
+        "label": "commits in week 1 of window",
+        "value": 9,
+        "unit": null
+      },
+      "cur.week.1.time_to_merge_median": {
+        "label": "median time to merge in week 1",
+        "value": 36.0,
+        "unit": "hours"
+      },
+      "cur.week.2.prs_merged": {
+        "label": "PRs merged in week 2 of window",
+        "value": 2,
+        "unit": null
+      },
+      "cur.week.2.commits": {
+        "label": "commits in week 2 of window",
+        "value": 1,
+        "unit": null
+      },
+      "cur.week.2.time_to_merge_median": {
+        "label": "median time to merge in week 2",
+        "value": 84.0,
+        "unit": "hours"
+      },
+      "cur.week.3.prs_merged": {
+        "label": "PRs merged in week 3 of window",
+        "value": 0,
+        "unit": null
+      },
+      "cur.week.3.commits": {
+        "label": "commits in week 3 of window",
+        "value": 0,
+        "unit": null
+      },
+      "cur.week.3.time_to_merge_median": {
+        "label": "median time to merge in week 3",
+        "value": null,
+        "unit": "hours"
+      },
+      "cur.week.4.prs_merged": {
+        "label": "PRs merged in week 4 of window",
+        "value": 1,
+        "unit": null
+      },
+      "cur.week.4.commits": {
+        "label": "commits in week 4 of window",
+        "value": 0,
+        "unit": null
+      },
+      "cur.week.4.time_to_merge_median": {
+        "label": "median time to merge in week 4",
+        "value": 240.0,
+        "unit": "hours"
+      },
+      "cur.week.5.prs_merged": {
+        "label": "PRs merged in week 5 of window",
+        "value": 0,
+        "unit": null
+      },
+      "cur.week.5.commits": {
+        "label": "commits in week 5 of window",
+        "value": 0,
+        "unit": null
+      },
+      "cur.week.5.time_to_merge_median": {
+        "label": "median time to merge in week 5",
+        "value": null,
+        "unit": "hours"
+      },
+      "cur.coverage.covered_ratio": {
+        "label": "fraction of window covered by synced data",
+        "value": 1.0,
+        "unit": "ratio"
+      },
+      "cur.window.days": {
+        "label": "window length",
+        "value": 30.0,
+        "unit": "days"
+      }
+    }
+  }
+}
