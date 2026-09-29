@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -47,10 +47,8 @@ class SyncManager:
                 t.cancel()
         for t in (self._task, self._ticker):
             if t:
-                try:
+                with suppress(asyncio.CancelledError):
                     await t
-                except asyncio.CancelledError:
-                    pass
 
     async def _tick(self) -> None:
         interval = self._settings.sync_interval_minutes * 60

@@ -253,6 +253,3 @@ class LlmTraceOut(BaseModel):
     error_type: str | None
     created_at: datetime
 
-
-class ErrorOut(BaseModel):
-    detail: str

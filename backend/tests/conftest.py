@@ -7,7 +7,7 @@ engine's numbers add up against the source data, not against a snapshot of itsel
 Window under test: 2026-03-01 .. 2026-03-31 (30 days). Baseline: 2026-01-30 .. 2026-03-01.
 """
 
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 
 import pytest
 

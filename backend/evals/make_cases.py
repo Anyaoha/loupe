@@ -5,7 +5,6 @@ The cases are committed so the eval harness runs without a database or network.
 """
 
 import json
-from datetime import UTC, datetime
 from pathlib import Path
 
 from loupe import db as dbmod

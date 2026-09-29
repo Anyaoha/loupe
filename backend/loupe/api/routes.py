@@ -1,4 +1,3 @@
-import logging
 from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, Query, Request, Response, status
@@ -23,7 +22,6 @@ from loupe.signals import compute_signals
 from loupe.sync import get_or_create_repository
 from loupe.timeutil import ensure_utc
 
-log = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1")
 
 

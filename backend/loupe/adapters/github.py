@@ -50,7 +50,7 @@ query($owner: String!, $name: String!, $first: Int!, $after: String) {
         author { login }
         mergedBy { login }
         labels(first: 20) { nodes { name } }
-        reviews(first: %d) {
+        reviews(first: __REVIEWS_PER_PR__) {
           totalCount
           nodes { id state submittedAt author { login } comments { totalCount } }
         }
@@ -58,7 +58,7 @@ query($owner: String!, $name: String!, $first: Int!, $after: String) {
     }
   }
 }
-""" % REVIEWS_PER_PR
+""".replace("__REVIEWS_PER_PR__", str(REVIEWS_PER_PR))
 
 _ISSUES_QUERY = """
 query($owner: String!, $name: String!, $first: Int!, $after: String) {

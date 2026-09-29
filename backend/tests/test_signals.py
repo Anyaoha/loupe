@@ -37,7 +37,7 @@ def drifting_repo(session):
         t = START + timedelta(days=2 * i)
         rows.append(pr(f"dev{i % 2}", t, t + timedelta(hours=60), reviews=0 if i % 2 else 1))
     # 6 stale open PRs (opened 20 days before END)
-    for i in range(6):
+    for _ in range(6):
         n += 1
         rows.append(WorkItem(repository_id=rid, kind=WorkItemKind.PULL_REQUEST, number=n, title="stale", author="dev0",
                              created_at=END - timedelta(days=20), updated_at=END - timedelta(days=20)))
