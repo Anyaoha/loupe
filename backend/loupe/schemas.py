@@ -208,12 +208,23 @@ class RootCause(BaseModel):
     model_confidence: float = Field(ge=0, le=1)
 
 
+class RecommendedAction(BaseModel):
+    action: str
+    rationale: str
+    fact_ids: list[str]
+    signal_id: str | None = None
+    grounded: bool = Field(description="Every cited fact id exists (and the signal id, if given)")
+    note: str | None = None
+
+
 class Verification(BaseModel):
     claims_total: int
     claims_verified: int
     claims_failed: int
     unknown_actors: list[str]
     penalty: float
+    actions_total: int = 0
+    actions_grounded: int = 0
 
 
 class ConfidenceBreakdown(BaseModel):
@@ -232,6 +243,7 @@ class InsightOut(BaseModel):
     confidence: float = Field(ge=0, le=1)
     confidence_breakdown: ConfidenceBreakdown
     evidence: list[EvidenceClaim]
+    recommended_actions: list[RecommendedAction] = Field(default_factory=list)
     signals_considered: list[str]
     verification: Verification
     prompt_version: str

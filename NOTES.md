@@ -12,7 +12,7 @@ Prerequisites: Docker, or Python 3.11+ and Node 20+ for local dev. Env vars are 
 
 ## 2. Architecture and the decisions behind it
 
-Loupe is four layers with one direction of dependency: **adapter → canonical store → analysis → API**. The adapter knows GitHub. Nothing below it does.
+Loupe is four layers with one direction of dependency: **adapter → canonical store → analysis → API**. The adapter knows GitHub. Nothing below it does. The first three decisions below also have ADRs in `docs/adr/` with context, consequences and rejected alternatives.
 
 **Canonical model over raw mirroring.** GitHub PRs, reviews, commits and issues are normalised into two source-agnostic tables: `WorkItem` (anything with a lifecycle: PRs, issues) and `ActivityEvent` (anything point-in-time: commits, reviews). Metrics, signals and the LLM prompt only read those. Adding Jira or Linear is one adapter emitting the same shapes; the detectors and the UI do not change. This is the same move as defining a shared telemetry attribute contract that several teams emit against: the platform owns the vocabulary, sources conform to it.
 
@@ -20,7 +20,7 @@ Loupe is four layers with one direction of dependency: **adapter → canonical s
 
 **Background sync into SQLite, not fetch-on-request.** Each repo keeps two high-water marks (work items, commits). A sync asks for everything updated since the mark minus a ten-minute overlap and upserts. Re-runs are idempotent, incremental syncs are cheap, and metrics queries never touch GitHub. The upsert helper picks the SQLite or Postgres dialect from the engine, so moving to Postgres is a `LOUPE_DATABASE_URL` change and nothing else.
 
-**Facts table between the numbers and the model.** The LLM does not see raw rows or the MetricsReport. It sees a flat `{fact_id: {label, value, unit}}` table plus the pre-computed signals, and is told those are the only numbers that exist. That makes the output verifiable: every claim must cite an id, and the verifier checks id existence, value match (with tolerance for rounding and percent-vs-ratio), and that any `@person` named appears in the data. Confidence is then computed from the verification result and the data coverage, not copied from the model. The full breakdown is returned so a reader can see why a number is 0.61 and not 0.85.
+**Facts table between the numbers and the model.** The LLM does not see raw rows or the MetricsReport. It sees a flat `{fact_id: {label, value, unit}}` table plus the pre-computed signals, and is told those are the only numbers that exist. That makes the output verifiable: every claim must cite an id, and the verifier checks id existence, value match (with tolerance for rounding and percent-vs-ratio), and that any `@person` named appears in the data. Recommended actions (at most three) follow the same rule: each must cite real fact ids, and an ungrounded one is penalised like a failed claim, so the model cannot pad the answer with generic advice. Confidence is then computed from the verification result and the data coverage, not copied from the model. The full breakdown is returned so a reader can see why a number is 0.61 and not 0.85.
 
 **Signals before synthesis.** The deterministic layer finds the drift and the LLM explains it, not the other way round. That keeps the expensive, non-deterministic call small (one call, ~2k tokens in) and keeps "what happened" reproducible even if the narrative varies. Baseline is the equal-length period immediately before the window, chosen for explainability over sophistication.
 

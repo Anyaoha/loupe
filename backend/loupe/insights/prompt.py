@@ -7,7 +7,7 @@ import json
 
 from loupe.schemas import SignalsReport
 
-PROMPT_VERSION = "insight-v1.2"
+PROMPT_VERSION = "insight-v1.3"
 
 SYSTEM = """You are an engineering analyst writing a short brief for an engineering manager.
 
@@ -22,7 +22,8 @@ Rules:
   3. If the signals support a root cause, state one hypothesis and how confident you are in it. If they do not, set root_cause to null. Do not speculate beyond the data.
   4. Prefer the strongest signal. Two or three sentences of narrative. No bullet points, no headers, no preamble.
   5. If coverage.covered_ratio is below 0.95, say so briefly and lower your confidence.
-  6. Respond with a single JSON object and nothing else, matching exactly:
+  6. Recommend at most three concrete actions the manager could take this week, strongest signal first. Each action must cite the fact ids that motivate it and, if it addresses a signal, that signal's id. If nothing drifted, return an empty list rather than generic advice.
+  7. Respond with a single JSON object and nothing else, matching exactly:
 
 {
   "headline": "one line, under 90 characters",
@@ -30,6 +31,7 @@ Rules:
   "root_cause": {"hypothesis": "one sentence", "model_confidence": 0.0-1.0} | null,
   "confidence": 0.0-1.0,
   "evidence": [{"fact_id": "id from facts", "claim": "short sentence", "quoted_value": number or string}],
+  "recommended_actions": [{"action": "imperative, under 120 characters", "rationale": "one sentence tied to the data", "fact_ids": ["ids from facts"], "signal_id": "signal id" | null}],
   "signals_considered": ["signal ids you used"]
 }"""
 

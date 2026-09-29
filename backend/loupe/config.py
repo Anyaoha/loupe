@@ -29,7 +29,7 @@ class Settings(BaseSettings):
     anthropic_workspace_id: str | None = None
     bedrock_model: str = "anthropic.claude-sonnet-4-5-20250929-v1:0"
     aws_region: str = "us-east-1"
-    llm_max_tokens: int = 1200
+    llm_max_tokens: int = 2000
 
     # API
     max_window_days: int = Field(default=366, ge=1)

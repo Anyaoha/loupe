@@ -39,13 +39,14 @@ export interface Fact { label: string; value: number | string | null; unit: stri
 export interface SignalsReport { repository: RepoOut; window: Window; baseline_window: Window; coverage: Coverage; signals: Signal[]; facts: Record<string, Fact> }
 
 export interface EvidenceClaim { fact_id: string; claim: string; quoted_value: number | string | null; verified: boolean; actual_value: number | string | null; note: string | null }
+export interface RecommendedAction { action: string; rationale: string; fact_ids: string[]; signal_id: string | null; grounded: boolean; note: string | null }
 export interface Insight {
   repository: RepoOut; window: Window; headline: string; narrative: string;
   root_cause: { hypothesis: string; model_confidence: number } | null;
   confidence: number;
   confidence_breakdown: { model_confidence: number; after_verification: number; coverage_cap: number; final: number };
-  evidence: EvidenceClaim[]; signals_considered: string[];
-  verification: { claims_total: number; claims_verified: number; claims_failed: number; unknown_actors: string[]; penalty: number };
+  evidence: EvidenceClaim[]; recommended_actions: RecommendedAction[]; signals_considered: string[];
+  verification: { claims_total: number; claims_verified: number; claims_failed: number; unknown_actors: string[]; penalty: number; actions_total: number; actions_grounded: number };
   prompt_version: string; model: string; trace_id: string; cached: boolean; generated_at: string;
 }
 

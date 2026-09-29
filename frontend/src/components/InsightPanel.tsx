@@ -58,6 +58,22 @@ export function InsightPanel({ insight, loading, error, onGenerate, onHoverFacts
             </ul>
           </div>
 
+          {insight.recommended_actions.length > 0 && (
+            <div className="evidence actions">
+              <div className="label">Recommended actions · {insight.verification.actions_grounded}/{insight.verification.actions_total} grounded in the data</div>
+              <ul>
+                {insight.recommended_actions.map((a, i) => (
+                  <li key={i} className={a.grounded ? "ok" : "bad"} onMouseEnter={() => onHoverFacts(a.fact_ids)} onMouseLeave={() => onHoverFacts(null)} title={a.rationale}>
+                    <span className="mark">{a.grounded ? "→" : "✗"}</span>
+                    <span className="claim">{a.action}</span>
+                    <code className="factid">{a.fact_ids.join(", ") || "no facts"}</code>
+                    {!a.grounded && <small className="why">{a.note}</small>}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           <FeedbackRow insight={insight} feedback={feedback} calibration={calibration} onFeedback={onFeedback} />
 
           <footer className="insight-foot muted">
@@ -94,7 +110,7 @@ function ConfidenceBar({ insight }: { insight: Insight }) {
   const b = insight.confidence_breakdown;
   const steps: [string, number, string][] = [
     ["model said", b.model_confidence, "raw self-reported confidence"],
-    ["after verification", b.after_verification, `penalty ${(insight.verification.penalty * 100).toFixed(0)}% for failed claims / unknown people`],
+    ["after verification", b.after_verification, `penalty ${(insight.verification.penalty * 100).toFixed(0)}% for failed claims / ungrounded actions / unknown people`],
     ["coverage cap", b.coverage_cap, "partial data can never yield high confidence"],
     ["final", b.final, "min of the above, and 0.5 if fewer than two claims verified"],
   ];

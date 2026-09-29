@@ -20,6 +20,8 @@ from loupe.timeutil import utcnow
 
 log = logging.getLogger(__name__)
 
+MAX_ACTIONS = 3
+
 
 class _RawRootCause(BaseModel):
     hypothesis: str = Field(max_length=500)
@@ -32,12 +34,20 @@ class _RawEvidence(BaseModel):
     quoted_value: float | int | str | None = None
 
 
+class _RawAction(BaseModel):
+    action: str = Field(max_length=200)
+    rationale: str = Field(default="", max_length=400)
+    fact_ids: list[str] = Field(default_factory=list, max_length=6)
+    signal_id: str | None = Field(default=None, max_length=100)
+
+
 class _RawInsight(BaseModel):
     headline: str = Field(max_length=160)
     narrative: str = Field(max_length=2000)
     root_cause: _RawRootCause | None = None
     confidence: float = Field(ge=0, le=1)
     evidence: list[_RawEvidence] = Field(max_length=12)
+    recommended_actions: list[_RawAction] = Field(default_factory=list, max_length=5)
     signals_considered: list[str] = Field(default_factory=list, max_length=20)
 
 
@@ -65,6 +75,8 @@ async def synthesize(report: SignalsReport, provider: LLMProvider, *, max_tokens
         model_confidence=raw.confidence,
         facts=report.facts,
         covered_ratio=report.coverage.covered_ratio,
+        raw_actions=[a.model_dump() for a in raw.recommended_actions[:MAX_ACTIONS]],
+        signal_ids=known_signal_ids,
     )
     return InsightOut(
         repository=report.repository,
@@ -75,6 +87,7 @@ async def synthesize(report: SignalsReport, provider: LLMProvider, *, max_tokens
         confidence=verified.confidence.final,
         confidence_breakdown=verified.confidence,
         evidence=verified.evidence,
+        recommended_actions=verified.actions,
         signals_considered=[s for s in raw.signals_considered if s in known_signal_ids],
         verification=verified.verification,
         prompt_version=PROMPT_VERSION,

@@ -103,25 +103,25 @@ Baseline is always the equal-length period immediately before the window. Simple
 ## How the insight stays honest
 
 1. The model receives a flat **facts table** (`cur.totals.prs_merged: 28`, `cur.reviewer.priya.reviews: 25`, …) and is told these are the only numbers that exist.
-2. It must return structured JSON: headline, narrative, optional root-cause hypothesis, self-reported confidence, and an evidence list where each claim cites a fact id and the value it used.
-3. The **verifier** checks every citation: does the fact id exist, does the quoted value match (with tolerance for rounding and percent-vs-ratio), did the narrative name any `@person` who is not in the data.
+2. It must return structured JSON: headline, narrative, optional root-cause hypothesis, self-reported confidence, an evidence list where each claim cites a fact id and the value it used, and up to three recommended actions, each citing the fact ids (and signal id) that motivate it.
+3. The **verifier** checks every citation: does the fact id exist, does the quoted value match (with tolerance for rounding and percent-vs-ratio), does every recommended action cite real facts, did the text name any `@person` who is not in the data.
 4. **Confidence is computed**: `model_confidence × (1 − penalty)`, capped by data coverage (`0.5 + 0.5 × covered_ratio`) and capped at 0.5 if fewer than two claims verified. The breakdown is returned so the reader sees why.
 
-Failed claims are still shown, struck through, with the actual value next to them. Hiding them would hide the model's error rate.
+Failed claims and ungrounded actions are still shown, marked, with the reason next to them. Hiding them would hide the model's error rate.
 
 5. **Confidence gets checked against outcomes.** A reader marks each insight right or wrong (`PUT .../feedback`, or the yes/no buttons in the UI). The verdict is stored with the confidence that was *shown*, and `/insights/calibration` reports, per prompt version, how often insights at each confidence band were actually confirmed. If 80% insights are confirmed half the time, the formula is overconfident and the numbers say so.
 
 ## Tests and evals
 
 ```bash
-make test          # 42 tests: metrics correctness against hand-computed fixtures, signal thresholds,
+make test          # 46 tests: metrics correctness against hand-computed fixtures, signal thresholds,
                    # verifier adversarial cases, GitHub adapter pagination/errors (mocked), API semantics,
                    # feedback + calibration
 make evals         # prompt eval harness, deterministic mock provider, no network
 make evals-live    # same harness against the configured real model (costs a few cents)
 ```
 
-The eval harness runs golden cases (quiet repo, drifting repo, partial coverage) through the full synthesize → verify path and gates on: evidence verification rate, confidence band, no invented people, correct top signal, brevity, and honesty about partial data. It also runs **guardrail regressions**: a deliberately misbehaving mock (hallucinated numbers, invented fact ids, unknown people) and asserts the verifier catches each one and lowers confidence. If those ever pass too easily, the guardrail is broken, not the model.
+The eval harness runs golden cases (quiet repo, drifting repo, partial coverage) through the full synthesize → verify path and gates on: evidence verification rate, confidence band, no invented people, correct top signal, brevity, and honesty about partial data. It also runs **guardrail regressions**: a deliberately misbehaving mock (hallucinated numbers, invented fact ids, unknown people, ungrounded actions) and asserts the verifier catches each one and lowers confidence. If those ever pass too easily, the guardrail is broken, not the model.
 
 Run it before changing `PROMPT_VERSION` or swapping models.
 
@@ -142,4 +142,4 @@ backend/evals/   eval harness + committed golden cases
 frontend/        React + Vite + TypeScript, no UI framework, hand-rolled SVG
 ```
 
-See `NOTES.md` for architecture decisions, trade-offs, what I'd do next, and how AI tools were used.
+See `NOTES.md` for architecture decisions, trade-offs, what I'd do next, and how AI tools were used. The three load-bearing decisions have their own records in `docs/adr/`: [GraphQL over REST](docs/adr/0001-github-graphql-over-rest.md), [computed confidence](docs/adr/0002-computed-confidence.md), [canonical data model](docs/adr/0003-canonical-data-model.md).

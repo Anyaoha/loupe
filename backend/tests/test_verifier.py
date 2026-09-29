@@ -75,3 +75,34 @@ def test_penalty_is_bounded():
     v = run(junk, text="@a @b @c @d @e", conf=1.0)
     assert v.verification.penalty == 0.8
     assert v.confidence.final == 0.2 if v.verification.claims_verified >= 2 else v.confidence.final <= 0.5
+
+
+
+GOOD = [{"fact_id": "cur.totals.prs_merged", "quoted_value": 42}, {"fact_id": "cur.reviewer.bob.reviews", "quoted_value": 12}]
+
+
+def test_grounded_action_is_not_penalised():
+    v = verify(raw_evidence=GOOD, narrative_text="ok", model_confidence=0.8, facts=FACTS, covered_ratio=1.0,
+               raw_actions=[{"action": "Add a second reviewer", "rationale": "bob did most reviews", "fact_ids": ["cur.concentration.review_top1_share"], "signal_id": "sig.rc"}],
+               signal_ids={"sig.rc"})
+    assert v.actions[0].grounded and v.verification.actions_grounded == 1
+    assert v.confidence.final == 0.8
+
+
+def test_ungrounded_actions_are_flagged_and_penalised():
+    v = verify(raw_evidence=GOOD, narrative_text="ok", model_confidence=0.8, facts=FACTS, covered_ratio=1.0,
+               raw_actions=[
+                   {"action": "Fix deploys", "fact_ids": ["cur.totals.deploys"]},
+                   {"action": "Do something", "fact_ids": []},
+                   {"action": "Spread reviews", "fact_ids": ["cur.reviewer.bob.reviews"], "signal_id": "sig.nope"},
+               ],
+               signal_ids={"sig.rc"})
+    assert [a.note for a in v.actions] == ["fact id does not exist: cur.totals.deploys", "no fact cited", "signal id does not exist"]
+    assert v.verification.actions_total == 3 and v.verification.actions_grounded == 0
+    assert v.verification.penalty == 0.45
+
+
+def test_unknown_actor_in_action_is_caught():
+    v = verify(raw_evidence=GOOD, narrative_text="ok", model_confidence=0.8, facts=FACTS, covered_ratio=1.0,
+               raw_actions=[{"action": "Ask @mallory to review more", "fact_ids": ["cur.reviewer.bob.reviews"]}])
+    assert v.verification.unknown_actors == ["mallory"]

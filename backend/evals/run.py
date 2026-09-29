@@ -91,6 +91,7 @@ async def run_guardrails(cases: list[dict], max_tokens: int) -> list[Result]:
         ("guardrail: hallucinated numbers", MockProvider(hallucinate_values=True), lambda i: i.verification.claims_failed >= 2 and i.confidence < honest.confidence),
         ("guardrail: invented fact id", MockProvider(invent_facts=True), lambda i: any(e.note == "fact id does not exist" for e in i.evidence) and i.confidence < honest.confidence),
         ("guardrail: unknown person", MockProvider(unknown_actor="mallory"), lambda i: i.verification.unknown_actors == ["mallory"] and i.confidence < honest.confidence),
+        ("guardrail: ungrounded action", MockProvider(ungrounded_action=True), lambda i: any(not a.grounded for a in i.recommended_actions) and i.confidence < honest.confidence),
     ]
     out = []
     for name, provider, predicate in scenarios:

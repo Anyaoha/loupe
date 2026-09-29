@@ -6,7 +6,7 @@ from typing import Protocol
 class LLMRequest:
     system: str
     user: str
-    max_tokens: int = 1200
+    max_tokens: int = 2000
 
 
 @dataclass
