@@ -56,5 +56,5 @@ export interface CalibrationReport { prompt_version: string | null; rated: numbe
 
 export interface LlmTrace {
   trace_id: string; purpose: string; prompt_version: string; gen_ai_system: string; gen_ai_request_model: string; gen_ai_response_model: string | null;
-  gen_ai_usage_input_tokens: number; gen_ai_usage_output_tokens: number; latency_ms: number; estimated_cost_usd: number; status: string; error_type: string | null; created_at: string;
+  gen_ai_usage_input_tokens: number; gen_ai_usage_output_tokens: number; latency_ms: number; estimated_cost_usd: number; status: string; error_type: string | null; error_message?: string | null; created_at: string;
 }

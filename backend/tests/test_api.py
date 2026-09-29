@@ -116,6 +116,22 @@ def test_llm_traces_recorded(client, tracked):
     assert traces[0]["status"] == "ok"
 
 
+def test_failed_llm_call_traces_redacted_error_message(client, tracked, monkeypatch):
+    owner, name = tracked
+
+    async def boom(req):
+        raise RuntimeError("401 invalid x-api-key sk-ant-abc123secret")
+
+    monkeypatch.setattr(client.app.state.llm_provider, "complete", boom)
+    r = client.post(f"/api/v1/repos/{owner}/{name}/insights", params=WINDOW)
+    assert r.status_code == 502
+    assert "abc123secret" not in r.text
+    trace = client.get("/api/v1/llm/traces").json()[0]
+    assert trace["status"] == "error" and trace["error_type"] == "RuntimeError"
+    assert "invalid x-api-key" in trace["error_message"]
+    assert "abc123secret" not in trace["error_message"]
+
+
 def test_feedback_is_upserted_and_feeds_calibration(client, tracked):
     owner, name = tracked
     insight = client.post(f"/api/v1/repos/{owner}/{name}/insights", params=WINDOW).json()

@@ -12,6 +12,7 @@ from dataclasses import dataclass
 
 from loupe.db import session_scope
 from loupe.llm.base import LLMError, LLMProvider, LLMRequest, LLMResponse
+from loupe.logging_setup import redact
 from loupe.models import LlmTrace
 
 log = logging.getLogger(__name__)
@@ -45,14 +46,14 @@ async def traced_complete(provider: LLMProvider, req: LLMRequest, *, purpose: st
         resp = await provider.complete(req)
     except Exception as exc:
         latency = (time.perf_counter() - t0) * 1000
-        _record(trace_id, purpose, prompt_version, provider, None, latency, status="error", error_type=type(exc).__name__)
-        raise LLMError(str(exc)) from exc
+        _record(trace_id, purpose, prompt_version, provider, None, latency, status="error", error_type=type(exc).__name__, error_message=redact(str(exc))[:500])
+        raise LLMError(redact(str(exc))) from exc
     latency = (time.perf_counter() - t0) * 1000
     _record(trace_id, purpose, prompt_version, provider, resp, latency, status="ok")
     return Traced(response=resp, trace_id=trace_id, latency_ms=latency)
 
 
-def _record(trace_id, purpose, prompt_version, provider, resp, latency_ms, *, status, error_type=None):
+def _record(trace_id, purpose, prompt_version, provider, resp, latency_ms, *, status, error_type=None, error_message=None):
     row = LlmTrace(
         trace_id=trace_id,
         purpose=purpose,
@@ -67,6 +68,7 @@ def _record(trace_id, purpose, prompt_version, provider, resp, latency_ms, *, st
         estimated_cost_usd=estimate_cost_usd(provider.model, resp.input_tokens, resp.output_tokens) if resp else 0.0,
         status=status,
         error_type=error_type,
+        error_message=error_message,
     )
     with session_scope() as s:
         s.add(row)

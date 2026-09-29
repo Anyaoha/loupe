@@ -7,14 +7,18 @@ _SECRET_PATTERNS = (
 )
 
 
+def redact(text: str) -> str:
+    for pat in _SECRET_PATTERNS:
+        text = pat.sub(lambda m: (m.group(1) if m.lastindex else "") + "***", text)
+    return text
+
+
 class RedactSecrets(logging.Filter):
     """Belt and braces: even if a token reaches a log line, it leaves redacted."""
 
     def filter(self, record: logging.LogRecord) -> bool:
         msg = record.getMessage()
-        redacted = msg
-        for pat in _SECRET_PATTERNS:
-            redacted = pat.sub(lambda m: (m.group(1) if m.lastindex else "") + "***", redacted)
+        redacted = redact(msg)
         if redacted != msg:
             record.msg, record.args = redacted, ()
         return True

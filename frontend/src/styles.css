@@ -115,3 +115,4 @@ td.title { max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-sp
 .board td:nth-child(3) { white-space: nowrap; color: var(--muted); font-size: 12px; text-align: right; }
 .tracetable { font-size: 12px; margin-top: 10px; }
 .tracetable tr.bad td { color: var(--crit); }
+.tracetable .why { display: block; max-width: 360px; white-space: normal; }

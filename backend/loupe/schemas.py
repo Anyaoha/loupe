@@ -292,5 +292,6 @@ class LlmTraceOut(BaseModel):
     estimated_cost_usd: float
     status: str
     error_type: str | None
+    error_message: str | None = None
     created_at: UtcDatetime
 
