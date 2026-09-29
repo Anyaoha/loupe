@@ -88,6 +88,7 @@ def test_insights_created_then_cached(client, tracked):
     assert first.status_code == 201, first.text
     body = first.json()
     assert body["cached"] is False
+    assert first.headers["X-Loupe-Coverage"] == "1.000"
     assert 0 <= body["confidence"] <= 1
     assert body["verification"]["claims_failed"] == 0
     assert all(e["verified"] for e in body["evidence"])
@@ -96,6 +97,7 @@ def test_insights_created_then_cached(client, tracked):
     assert second.status_code == 200
     assert second.json()["cached"] is True
     assert second.json()["trace_id"] == body["trace_id"]
+    assert second.headers["X-Loupe-Coverage"] == "1.000"
 
     third = client.post(f"/api/v1/repos/{owner}/{name}/insights", params={**WINDOW, "refresh": "true"})
     assert third.status_code == 201

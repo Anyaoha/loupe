@@ -6,7 +6,7 @@ from sqlalchemy import select
 from loupe.api.deps import DbDep, RepoDep, SettingsDep, WindowDep
 from loupe.insights import PROMPT_VERSION, InsightParseError, calibration_report, synthesize
 from loupe.llm.base import LLMError
-from loupe.metrics import compute_metrics
+from loupe.metrics import compute_coverage, compute_metrics
 from loupe.models import FeedbackVerdict, Insight, InsightFeedback, LlmTrace, Repository, SyncStatus
 from loupe.schemas import (
     CalibrationReport,
@@ -120,6 +120,7 @@ async def insights(
         cached = db.scalar(select(Insight).filter_by(**key))
         if cached:
             response.status_code = status.HTTP_200_OK
+            _coverage_headers(response, compute_coverage(repo, window.start, window.end).covered_ratio, repo)
             return InsightOut.model_validate({**cached.body, "cached": True})
 
     report = compute_signals(db, repo, window.start, window.end)
