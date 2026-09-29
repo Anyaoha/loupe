@@ -8,5 +8,7 @@ __pycache__/
 .pytest_cache/
 node_modules/
 frontend/dist/
+*.tsbuildinfo
 evals/results/
 *.egg-info/
+_local_notes/

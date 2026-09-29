@@ -1,1 +1,0 @@
-{"root":["./src/App.tsx","./src/api.ts","./src/format.ts","./src/main.tsx","./src/types.ts","./src/components/InsightPanel.tsx","./src/components/MetricsPanel.tsx","./src/components/RepoBar.tsx","./src/components/SignalsPanel.tsx","./src/components/TracesPanel.tsx"],"version":"5.9.3"}

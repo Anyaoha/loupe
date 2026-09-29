@@ -1,0 +1,11 @@
+flowchart LR
+    GH[GitHub REST API] --> AD[Integration Adapter<br/>github.py]
+    AD --> SY[Background Sync Worker<br/>incremental, ETag-aware]
+    SY --> DB[(SQLite<br/>canonical CollaborationEvent)]
+    DB --> ME[Metrics Engine<br/>contributors, reviewers, closers,<br/>time-to-merge, stale PRs]
+    ME --> SD[Signal Detector<br/>rolling baselines, z-scores,<br/>review-load concentration, bus factor]
+    SD --> IS[Insight Synthesizer<br/>Claude → structured JSON]
+    IS --> CV[Claim Verifier<br/>every cited number checked<br/>against computed metrics]
+    CV --> API[FastAPI<br/>/metrics /signals /insights]
+    API --> UI[React + TS UI<br/>date picker, signal cards,<br/>evidence chain drilldown]
+    IS -.-> TR[LLM Trace Log<br/>prompt version, tokens,<br/>latency, cost]
