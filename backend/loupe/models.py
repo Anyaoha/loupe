@@ -159,6 +159,30 @@ class Insight(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
+class FeedbackVerdict(StrEnum):
+    CONFIRMED = "confirmed"
+    REJECTED = "rejected"
+
+
+class InsightFeedback(Base):
+    """A human verdict on one synthesized narrative, keyed by its trace id. Confidence, prompt
+    version and model are snapshotted so a later refresh of the cached insight cannot rewrite
+    what was actually judged. This is the ground truth confidence gets calibrated against."""
+
+    __tablename__ = "insight_feedback"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    repository_id: Mapped[int] = mapped_column(ForeignKey("repositories.id", ondelete="CASCADE"), nullable=False)
+    trace_id: Mapped[str] = mapped_column(String(36), unique=True, nullable=False)
+    verdict: Mapped[str] = mapped_column(String(16), nullable=False)
+    note: Mapped[str | None] = mapped_column(Text)
+    confidence: Mapped[float] = mapped_column(Float, nullable=False)
+    prompt_version: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
+    model: Mapped[str] = mapped_column(String(128), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+
 class LlmTrace(Base):
     """One row per model call. Column names follow the OpenTelemetry GenAI semantic
     conventions (gen_ai.*) so this table can be exported to any OTel backend unchanged."""

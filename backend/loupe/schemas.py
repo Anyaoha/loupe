@@ -235,6 +235,41 @@ class InsightOut(BaseModel):
     generated_at: datetime
 
 
+class FeedbackIn(BaseModel):
+    verdict: Literal["confirmed", "rejected"]
+    note: str | None = Field(default=None, max_length=1000)
+
+
+class FeedbackOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    trace_id: str
+    verdict: str
+    note: str | None
+    confidence: float
+    prompt_version: str
+    model: str
+    created_at: datetime
+    updated_at: datetime
+
+
+class CalibrationBucket(BaseModel):
+    lower: float
+    upper: float
+    rated: int
+    confirmed: int
+    hit_rate: float | None = Field(description="Share of rated insights in this band that a human confirmed")
+    mean_confidence: float | None
+
+
+class CalibrationReport(BaseModel):
+    prompt_version: str | None
+    rated: int
+    confirmed: int
+    brier_score: float | None = Field(description="Mean squared gap between confidence and outcome (0 = perfect, 0.25 = coin flip at 50%)")
+    buckets: list[CalibrationBucket]
+
+
 class LlmTraceOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

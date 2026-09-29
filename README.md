@@ -69,6 +69,8 @@ Interactive docs at `http://localhost:8000/docs`.
 | `GET` | `/api/v1/repos/{owner}/{name}/metrics?from&to` | Totals, leaderboards, flow stats, open/stale PRs, concentration, weekly series. |
 | `GET` | `/api/v1/repos/{owner}/{name}/signals?from&to` | Detected drift vs the preceding equal-length window, plus the **facts table**. |
 | `POST` | `/api/v1/repos/{owner}/{name}/insights?from&to[&refresh=true]` | LLM narrative with root-cause hypothesis, verified evidence chain, computed confidence. `201` fresh, `200` cached. |
+| `PUT` | `/api/v1/insights/{trace_id}/feedback` | Human verdict on one narrative (`confirmed` / `rejected`, optional note). `201` first verdict, `200` update, `404` if the narrative was superseded. |
+| `GET` | `/api/v1/insights/calibration[?prompt_version=…\|all]` | Displayed confidence vs verdicts: hit rate per confidence band and a Brier score. Defaults to the current prompt version. |
 | `GET` | `/api/v1/llm/traces` | Recent model calls with OTel `gen_ai.*` attributes, latency and estimated cost. |
 
 `from` / `to` accept ISO dates; a bare `to` date is inclusive of that day. Defaults to the trailing 30 days. Responses carry `X-Loupe-Coverage` (fraction of the window the local store can vouch for) and a `Warning` header while a sync is running.
@@ -76,7 +78,9 @@ Interactive docs at `http://localhost:8000/docs`.
 ```bash
 R=localhost:8000/api/v1/repos/demo/sample-service     # trailing 30 days when from/to are omitted
 curl -s "$R/signals" | jq '.signals[] | {severity, title}'
-curl -s -X POST "$R/insights" | jq '{headline, confidence, confidence_breakdown, verification}'
+curl -s -X POST "$R/insights" | jq '{headline, confidence, confidence_breakdown, verification, trace_id}'
+curl -s -X PUT localhost:8000/api/v1/insights/<trace_id>/feedback -H 'content-type: application/json' -d '{"verdict":"confirmed"}'
+curl -s localhost:8000/api/v1/insights/calibration | jq '{rated, brier_score, buckets}'
 ```
 
 ## What the metrics mean and why these
@@ -105,11 +109,14 @@ Baseline is always the equal-length period immediately before the window. Simple
 
 Failed claims are still shown, struck through, with the actual value next to them. Hiding them would hide the model's error rate.
 
+5. **Confidence gets checked against outcomes.** A reader marks each insight right or wrong (`PUT .../feedback`, or the yes/no buttons in the UI). The verdict is stored with the confidence that was *shown*, and `/insights/calibration` reports, per prompt version, how often insights at each confidence band were actually confirmed. If 80% insights are confirmed half the time, the formula is overconfident and the numbers say so.
+
 ## Tests and evals
 
 ```bash
-make test          # 35 tests: metrics correctness against hand-computed fixtures, signal thresholds,
-                   # verifier adversarial cases, GitHub adapter pagination/errors (mocked), API semantics
+make test          # 38 tests: metrics correctness against hand-computed fixtures, signal thresholds,
+                   # verifier adversarial cases, GitHub adapter pagination/errors (mocked), API semantics,
+                   # feedback + calibration
 make evals         # prompt eval harness, deterministic mock provider, no network
 make evals-live    # same harness against the configured real model (costs a few cents)
 ```
@@ -123,11 +130,11 @@ Run it before changing `PROMPT_VERSION` or swapping models.
 ```
 backend/loupe/
   adapters/      SourceAdapter protocol + GitHub GraphQL implementation
-  models.py      canonical storage: Repository, SyncState, WorkItem, ActivityEvent, Insight, LlmTrace
+  models.py      canonical storage: Repository, SyncState, WorkItem, ActivityEvent, Insight, InsightFeedback, LlmTrace
   sync.py        incremental sync with high-water marks and dialect-aware upserts
   metrics/       MetricsReport over a window (SQL aggregates + small Python percentiles)
   signals/       detectors + facts table
-  insights/      versioned prompt, synthesizer, claim verifier
+  insights/      versioned prompt, synthesizer, claim verifier, calibration report
   llm/           provider protocol, Anthropic / Bedrock / Mock, OTel-named tracing
   api/           FastAPI app, routes, validated deps, background SyncManager
 backend/tests/   pytest

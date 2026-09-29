@@ -1,4 +1,4 @@
-import type { Insight, SignalsReport } from "../types";
+import type { CalibrationReport, Feedback, Insight, SignalsReport, Verdict } from "../types";
 import { num } from "../format";
 
 interface Props {
@@ -8,9 +8,12 @@ interface Props {
   onGenerate: (refresh: boolean) => void;
   onHoverFacts: (ids: string[] | null) => void;
   signals: SignalsReport | null;
+  feedback: Feedback | null;
+  calibration: CalibrationReport | null;
+  onFeedback: (verdict: Verdict) => void;
 }
 
-export function InsightPanel({ insight, loading, error, onGenerate, onHoverFacts, signals }: Props) {
+export function InsightPanel({ insight, loading, error, onGenerate, onHoverFacts, signals, feedback, calibration, onFeedback }: Props) {
   return (
     <section className="panel insight">
       <div className="panel-head">
@@ -55,6 +58,8 @@ export function InsightPanel({ insight, loading, error, onGenerate, onHoverFacts
             </ul>
           </div>
 
+          <FeedbackRow insight={insight} feedback={feedback} calibration={calibration} onFeedback={onFeedback} />
+
           <footer className="insight-foot muted">
             {insight.model} · {insight.prompt_version} · trace {insight.trace_id.slice(0, 8)} · {insight.cached ? "cached" : "fresh"} ·
             signals used: {insight.signals_considered.join(", ") || "none"}
@@ -62,6 +67,26 @@ export function InsightPanel({ insight, loading, error, onGenerate, onHoverFacts
         </div>
       )}
     </section>
+  );
+}
+
+function FeedbackRow({ insight, feedback, calibration, onFeedback }: Pick<Props, "feedback" | "calibration" | "onFeedback"> & { insight: Insight }) {
+  const band = calibration?.buckets.find((b) => insight.confidence >= b.lower && (insight.confidence < b.upper || b.upper === 1));
+  const choice = (verdict: Verdict, text: string) => (
+    <button className={`small ${feedback?.verdict === verdict ? "" : "ghost"}`} onClick={() => onFeedback(verdict)}>{text}</button>
+  );
+  return (
+    <div className="inline feedback">
+      <span className="label">Was this right?</span>
+      {choice("confirmed", "yes")}
+      {choice("rejected", "no")}
+      {calibration && calibration.rated > 0 && (
+        <small className="muted" title="Displayed confidence vs human verdicts for this prompt version">
+          {band && band.rated > 0 && `${band.confirmed}/${band.rated} confirmed at ${(band.lower * 100).toFixed(0)}–${(band.upper * 100).toFixed(0)}% confidence · `}
+          {calibration.rated} rated · Brier {calibration.brier_score?.toFixed(3)}
+        </small>
+      )}
+    </div>
   );
 }
 

@@ -26,13 +26,15 @@ Loupe is four layers with one direction of dependency: **adapter → canonical s
 
 **HTTP semantics that mean something.** `POST /repos` returns `202` with a `Location` header because sync is asynchronous; `200` when already tracked. `POST /insights` because it triggers a paid call; `201` on a fresh synthesis, `200` on a cache hit keyed by (window, prompt version, model), so a prompt bump never serves a stale narrative. Every metrics response carries `X-Loupe-Coverage` and a `Warning` header while a sync is running, so a client can tell a real quiet week from a half-synced one.
 
+**Feedback closes the loop.** Detecting drift and explaining it is half of the job; the other half is knowing whether the explanations were right. `PUT /insights/{trace_id}/feedback` records a verdict against the exact narrative a reader saw (a refresh issues a new trace id, so old verdicts cannot silently attach to new text), snapshotting the confidence that was displayed. `GET /insights/calibration` turns those verdicts into a reliability table per prompt version plus a Brier score, which gives a prompt or model change a second gate besides the eval harness: offline goldens before shipping, observed hit rate after.
+
 **Tracing with OTel GenAI attribute names.** `LlmTrace` columns are literally `gen_ai_system`, `gen_ai_request_model`, `gen_ai_usage_input_tokens`, and so on. It is a table today; exporting to an OTel backend is a sink swap, not a rename.
 
 ## 3. Trade-offs I'd revisit, and what I'd do with another day
 
 **Baseline model.** "Previous equal period" is explainable but naive: a window that spans a holiday will look like drift. Next step is a trailing 8-week weekly series per metric with a robust z-score (median/MAD), which the `weekly` buckets already set up. The threshold constants at the top of `detectors.py` are opinions, not calibrated values; with real usage I would tune them against labelled examples and expose them per repo.
 
-**Confidence is heuristic, not calibrated.** The penalty and cap formula is defensible and transparent, but it is not empirically calibrated. The right next step is to store human feedback ("was this insight right?") next to each insight and periodically fit displayed confidence to observed hit rate, per prompt version. The `Insight` table and trace ids are already there to join on.
+**Confidence is measured, not yet corrected.** The penalty and cap formula is transparent, and the feedback endpoint now measures how well it matches reality, but nothing feeds that back into the displayed number. Next step once there are enough verdicts (a few dozen per band): fit an isotonic or Platt mapping per prompt version and show both raw and calibrated confidence. Feedback is also unauthenticated and one-verdict-per-narrative; a real deployment needs reviewer identity and would weigh disagreement between reviewers.
 
 **Sync runs inside the API process.** One asyncio worker, in-memory de-dup, no retry with backoff on rate limits (it logs and waits for the next tick). Fine for a demo and for one instance; for more than one replica I would move sync to a separate worker with a real queue and per-repo locks, and persist the rate-limit reset time so restarts do not re-hammer the API.
 

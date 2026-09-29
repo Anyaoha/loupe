@@ -49,6 +49,11 @@ export interface Insight {
   prompt_version: string; model: string; trace_id: string; cached: boolean; generated_at: string;
 }
 
+export type Verdict = "confirmed" | "rejected";
+export interface Feedback { trace_id: string; verdict: Verdict; note: string | null; confidence: number; prompt_version: string; model: string; created_at: string; updated_at: string }
+export interface CalibrationBucket { lower: number; upper: number; rated: number; confirmed: number; hit_rate: number | null; mean_confidence: number | null }
+export interface CalibrationReport { prompt_version: string | null; rated: number; confirmed: number; brier_score: number | null; buckets: CalibrationBucket[] }
+
 export interface LlmTrace {
   trace_id: string; purpose: string; prompt_version: string; gen_ai_system: string; gen_ai_request_model: string; gen_ai_response_model: string | null;
   gen_ai_usage_input_tokens: number; gen_ai_usage_output_tokens: number; latency_ms: number; estimated_cost_usd: number; status: string; error_type: string | null; created_at: string;

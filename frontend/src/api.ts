@@ -1,4 +1,4 @@
-import type { Insight, LlmTrace, MetricsReport, SignalsReport, TrackedRepo } from "./types";
+import type { CalibrationReport, Feedback, Insight, LlmTrace, MetricsReport, SignalsReport, TrackedRepo, Verdict } from "./types";
 
 export class ApiError extends Error {
   constructor(public status: number, message: string) { super(message); }
@@ -27,5 +27,8 @@ export const api = {
   signals: (owner: string, name: string, w: WindowParams) => request<SignalsReport>(`${repoPath(owner, name)}/signals${qs(w)}`),
   insight: (owner: string, name: string, w: WindowParams, refresh = false) =>
     request<Insight>(`${repoPath(owner, name)}/insights${qs(w)}${refresh ? "&refresh=true" : ""}`, { method: "POST" }),
+  feedback: (traceId: string, verdict: Verdict) =>
+    request<Feedback>(`/api/v1/insights/${encodeURIComponent(traceId)}/feedback`, { method: "PUT", body: JSON.stringify({ verdict }) }),
+  calibration: () => request<CalibrationReport>("/api/v1/insights/calibration"),
   traces: () => request<LlmTrace[]>("/api/v1/llm/traces?limit=20"),
 };

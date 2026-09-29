@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { api, ApiError } from "./api";
-import type { Insight, LlmTrace, MetricsReport, SignalsReport, TrackedRepo } from "./types";
+import type { CalibrationReport, Feedback, Insight, LlmTrace, MetricsReport, SignalsReport, TrackedRepo, Verdict } from "./types";
 import { isoDate } from "./format";
 import { RepoBar } from "./components/RepoBar";
 import { SignalsPanel } from "./components/SignalsPanel";
@@ -22,6 +22,8 @@ export default function App() {
   const [metrics, setMetrics] = useState<MetricsReport | null>(null);
   const [signals, setSignals] = useState<SignalsReport | null>(null);
   const [insight, setInsight] = useState<Insight | null>(null);
+  const [feedback, setFeedback] = useState<Feedback | null>(null);
+  const [calibration, setCalibration] = useState<CalibrationReport | null>(null);
   const [traces, setTraces] = useState<LlmTrace[]>([]);
   const [loading, setLoading] = useState(false);
   const [insightLoading, setInsightLoading] = useState(false);
@@ -40,6 +42,7 @@ export default function App() {
   }, []);
 
   useEffect(() => { refreshRepos().catch((e) => setError(String(e))); }, [refreshRepos]);
+  useEffect(() => { api.calibration().then(setCalibration).catch(() => undefined); }, []);
 
   // Poll sync state while a sync is pending/running so the bar and numbers update live.
   useEffect(() => {
@@ -51,7 +54,7 @@ export default function App() {
   useEffect(() => {
     if (!owner || !name) return;
     let cancelled = false;
-    setLoading(true); setError(null); setInsight(null); setInsightError(null);
+    setLoading(true); setError(null); setInsight(null); setFeedback(null); setInsightError(null);
     Promise.all([api.metrics(owner, name, { from, to }), api.signals(owner, name, { from, to })])
       .then(([m, s]) => { if (!cancelled) { setMetrics(m); setSignals(s); } })
       .catch((e) => !cancelled && setError(e instanceof ApiError ? e.message : String(e)))
@@ -64,11 +67,23 @@ export default function App() {
     if (!owner || !name) return;
     setInsightLoading(true); setInsightError(null);
     try {
-      setInsight(await api.insight(owner, name, { from, to }, refresh));
+      const next = await api.insight(owner, name, { from, to }, refresh);
+      if (next.trace_id !== insight?.trace_id) setFeedback(null);
+      setInsight(next);
       setTraces(await api.traces());
     } catch (e) {
       setInsightError(e instanceof ApiError ? `${e.status}: ${e.message}` : String(e));
     } finally { setInsightLoading(false); }
+  };
+
+  const rate = async (verdict: Verdict) => {
+    if (!insight) return;
+    try {
+      setFeedback(await api.feedback(insight.trace_id, verdict));
+      setCalibration(await api.calibration());
+    } catch (e) {
+      setInsightError(e instanceof ApiError ? `${e.status}: ${e.message}` : String(e));
+    }
   };
 
   const track = async (o: string, n: string) => {
@@ -96,7 +111,8 @@ export default function App() {
         <main className="grid">
           <div className="col">
             <SignalsPanel report={signals} loading={loading} highlighted={highlighted} onHoverFacts={setHoverFacts} repoUrl={repoUrl} />
-            <InsightPanel insight={insight} loading={insightLoading} error={insightError} onGenerate={generate} onHoverFacts={setHoverFacts} signals={signals} />
+            <InsightPanel insight={insight} loading={insightLoading} error={insightError} onGenerate={generate} onHoverFacts={setHoverFacts} signals={signals}
+              feedback={feedback} calibration={calibration} onFeedback={rate} />
           </div>
           <div className="col">
             <MetricsPanel metrics={metrics} loading={loading} highlighted={highlighted} />

@@ -1,14 +1,17 @@
 from typing import Annotated
 
-from fastapi import APIRouter, HTTPException, Query, Request, Response, status
+from fastapi import APIRouter, HTTPException, Path, Query, Request, Response, status
 from sqlalchemy import select
 
 from loupe.api.deps import DbDep, RepoDep, SettingsDep, WindowDep
-from loupe.insights import PROMPT_VERSION, InsightParseError, synthesize
+from loupe.insights import PROMPT_VERSION, InsightParseError, calibration_report, synthesize
 from loupe.llm.base import LLMError
 from loupe.metrics import compute_metrics
-from loupe.models import Insight, LlmTrace, Repository, SyncStatus
+from loupe.models import FeedbackVerdict, Insight, InsightFeedback, LlmTrace, Repository, SyncStatus
 from loupe.schemas import (
+    CalibrationReport,
+    FeedbackIn,
+    FeedbackOut,
     InsightOut,
     LlmTraceOut,
     MetricsReport,
@@ -137,6 +140,51 @@ async def insights(
     response.status_code = status.HTTP_201_CREATED
     _coverage_headers(response, report.coverage.covered_ratio, repo)
     return insight
+
+
+TraceIdParam = Annotated[str, Path(pattern=r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", description="trace_id of the insight")]
+
+
+@router.put(
+    "/insights/{trace_id}/feedback",
+    response_model=FeedbackOut,
+    summary="Record whether an insight was right",
+    description="One verdict per narrative; PUT again to change it. 201 on the first verdict, 200 on an update.",
+    responses={201: {"description": "Verdict recorded"}, 200: {"description": "Verdict updated"}, 404: {"description": "No current insight has this trace id"}},
+)
+def insight_feedback(trace_id: TraceIdParam, body: FeedbackIn, db: DbDep, response: Response):
+    insight = db.scalar(select(Insight).where(Insight.body["trace_id"].as_string() == trace_id))
+    if insight is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="no current insight has this trace id (unknown, or superseded by a refresh)")
+    feedback = db.scalar(select(InsightFeedback).filter_by(trace_id=trace_id))
+    created = feedback is None
+    if created:
+        feedback = InsightFeedback(
+            repository_id=insight.repository_id,
+            trace_id=trace_id,
+            confidence=insight.body["confidence"],
+            prompt_version=insight.prompt_version,
+            model=insight.model,
+        )
+        db.add(feedback)
+    feedback.verdict = body.verdict
+    feedback.note = body.note
+    db.commit()
+    response.status_code = status.HTTP_201_CREATED if created else status.HTTP_200_OK
+    out = FeedbackOut.model_validate(feedback)
+    return out.model_copy(update={"created_at": ensure_utc(out.created_at), "updated_at": ensure_utc(out.updated_at)})
+
+
+@router.get("/insights/calibration", response_model=CalibrationReport, summary="Displayed confidence vs human verdicts")
+def insight_calibration(
+    db: DbDep,
+    prompt_version: Annotated[str, Query(pattern=r"^[A-Za-z0-9._-]{1,32}$", description="Defaults to the current prompt; `all` pools every version")] = PROMPT_VERSION,
+):
+    query = select(InsightFeedback.confidence, InsightFeedback.verdict)
+    if prompt_version != "all":
+        query = query.where(InsightFeedback.prompt_version == prompt_version)
+    ratings = ((conf, verdict == FeedbackVerdict.CONFIRMED) for conf, verdict in db.execute(query))
+    return calibration_report(ratings, None if prompt_version == "all" else prompt_version)
 
 
 # ---- observability ----------------------------------------------------------------------
