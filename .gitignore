@@ -11,4 +11,3 @@ frontend/dist/
 *.tsbuildinfo
 evals/results/
 *.egg-info/
-_local_notes/
