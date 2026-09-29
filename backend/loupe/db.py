@@ -1,7 +1,7 @@
 from collections.abc import Iterator
 from contextlib import contextmanager
 
-from sqlalchemy import create_engine, event
+from sqlalchemy import create_engine, event, inspect, text
 from sqlalchemy.orm import Session, sessionmaker
 
 from loupe.config import get_settings
@@ -26,8 +26,21 @@ def init_engine(database_url: str | None = None):
             cur.close()
 
     Base.metadata.create_all(_engine)
+    _add_missing_columns(_engine)
     _SessionLocal = sessionmaker(bind=_engine, expire_on_commit=False)
     return _engine
+
+
+def _add_missing_columns(engine) -> None:
+    """Additive-only schema upgrade for databases created by an older version (no Alembic yet).
+    Existing rows keep NULL in new columns until the item is next updated and re-synced."""
+    insp = inspect(engine)
+    with engine.begin() as conn:
+        for table in Base.metadata.sorted_tables:
+            existing = {c["name"] for c in insp.get_columns(table.name)}
+            for col in table.columns:
+                if col.name not in existing and col.nullable:
+                    conn.execute(text(f"ALTER TABLE {table.name} ADD COLUMN {col.name} {col.type.compile(engine.dialect)}"))
 
 
 def get_engine():

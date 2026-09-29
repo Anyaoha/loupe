@@ -12,6 +12,7 @@ from loupe.timeutil import ensure_utc, utcnow
 
 OWNER_PATTERN = r"^[A-Za-z0-9][A-Za-z0-9-]{0,38}$"
 NAME_PATTERN = r"^[A-Za-z0-9_.-]{1,100}$"
+NOW_GRANULARITY_MINUTES = 15
 
 OwnerParam = Annotated[str, Path(pattern=OWNER_PATTERN, description="GitHub owner/org login")]
 NameParam = Annotated[str, Path(pattern=NAME_PATTERN, description="Repository name")]
@@ -31,7 +32,9 @@ RepoDep = Annotated[Repository, Depends(get_repo)]
 
 class TimeWindow:
     """Validated [start, end) window. Defaults to the trailing 30 days ending now.
-    Dates are inclusive on the calendar day for `to`, so `to=2026-03-31` covers March 31."""
+    Dates are inclusive on the calendar day for `to`, so `to=2026-03-31` covers March 31.
+    "Now" is floored to NOW_GRANULARITY_MINUTES so windows reaching the present get a stable
+    insight cache key between syncs instead of a new one every request."""
 
     def __init__(
         self,
@@ -40,6 +43,7 @@ class TimeWindow:
         to: Annotated[datetime | None, Query(description="ISO date/datetime, inclusive of that day when a bare date is given")] = None,
     ):
         now = utcnow()
+        now = now.replace(minute=now.minute - now.minute % NOW_GRANULARITY_MINUTES, second=0, microsecond=0)
         end = ensure_utc(to) if to else now
         if to is not None and to.hour == 0 and to.minute == 0 and to.second == 0:
             end = end + timedelta(days=1)

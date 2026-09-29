@@ -93,6 +93,7 @@ class Leaderboards(BaseModel):
     lines_changed: list[ActorLines]
     reviewers: list[ReviewerRow]
     mergers: list[ActorCount]
+    closers: list[ActorCount]
 
 
 class DurationStats(BaseModel):

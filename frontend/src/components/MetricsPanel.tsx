@@ -35,6 +35,8 @@ export function MetricsPanel({ metrics, loading, highlighted }: Props) {
         <Board title="Reviewers" rows={lb.reviewers.map((r) => [r.actor, r.reviews, `${r.approvals} ✓ · ${r.changes_requested} ✎`])} head={["who", "reviews", ""]} litRow={(a) => highlighted.has(`cur.reviewer.${a}.reviews`)} />
         <Board title="Committers" rows={lb.committers.map((r) => [r.actor, r.count, ""])} head={["who", "commits", ""]} litRow={(a) => highlighted.has(`cur.committer.${a}.commits`)} />
         <Board title="PR authors (merged)" rows={lb.pr_authors.map((r) => [r.actor, r.count, ""])} head={["who", "PRs", ""]} litRow={(a) => highlighted.has(`cur.pr_author.${a}.prs_merged`)} />
+        <Board title="Mergers" rows={lb.mergers.map((r) => [r.actor, r.count, ""])} head={["who", "PRs", ""]} litRow={(a) => highlighted.has(`cur.merger.${a}.prs_merged`)} />
+        <Board title="Closers (issues, unmerged PRs)" rows={lb.closers.map((r) => [r.actor, r.count, ""])} head={["who", "closed", ""]} litRow={(a) => highlighted.has(`cur.closer.${a}.closed`)} />
         <Board title="Lines changed" rows={lb.lines_changed.map((r) => [r.actor, r.total, `+${r.additions} −${r.deletions}`])} head={["who", "total", ""]} />
       </div>
 
@@ -79,7 +81,7 @@ function Board({ title, head, rows, litRow }: { title: string; head: string[]; r
           <tbody>
             {rows.map((r) => (
               <tr key={String(r[0])} className={litRow?.(String(r[0])) ? "lit" : ""}>
-                {r.map((cell, i) => <td key={i} className={i === 1 ? "n" : ""}>{cell}</td>)}
+                {r.map((cell, i) => <td key={i} className={i === 1 ? "n" : ""} title={i === 0 ? String(cell) : undefined}>{cell}</td>)}
               </tr>
             ))}
           </tbody>
@@ -94,24 +96,26 @@ function Weekly({ metrics }: { metrics: MetricsReport }) {
   if (w.length < 2) return null;
   const W = 640, H = 120, pad = 24;
   const maxMerged = Math.max(1, ...w.map((p) => p.prs_merged));
-  const ttm = w.map((p) => p.median_time_to_merge_hours ?? 0);
-  const maxTtm = Math.max(1, ...ttm);
+  const ttm = w.map((p) => p.median_time_to_merge_hours);
+  const maxTtm = Math.max(1, ...ttm.map((v) => v ?? 0));
   const bw = (W - pad * 2) / w.length;
   const y = (v: number, max: number) => H - pad - (v / max) * (H - pad * 2);
-  const line = ttm.map((v, i) => `${i === 0 ? "M" : "L"}${pad + bw * i + bw / 2},${y(v, maxTtm)}`).join(" ");
+  const line = ttm.map((v, i) => (v == null ? "" : `${i === 0 || ttm[i - 1] == null ? "M" : "L"}${pad + bw * i + bw / 2},${y(v, maxTtm)}`)).join(" ");
+  const lastIsPartial = Date.parse(metrics.window.end) - Date.parse(w[w.length - 1].week_start) < 7 * 86400000 - 60000;
+  const partial = (i: number) => lastIsPartial && i === w.length - 1;
   return (
     <div className="weekly">
       <div className="label">Per week · <span className="k bars">PRs merged</span> · <span className="k line">median time to merge</span></div>
       <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none">
         {w.map((p, i) => (
           <g key={i}>
-            <rect x={pad + bw * i + 4} y={y(p.prs_merged, maxMerged)} width={bw - 8} height={H - pad - y(p.prs_merged, maxMerged)} className="bar" />
-            <text x={pad + bw * i + bw / 2} y={H - 6} textAnchor="middle" className="axis">{shortDate(p.week_start)}</text>
+            <rect x={pad + bw * i + 4} y={y(p.prs_merged, maxMerged)} width={bw - 8} height={H - pad - y(p.prs_merged, maxMerged)} className={partial(i) ? "bar partial" : "bar"} />
+            <text x={pad + bw * i + bw / 2} y={H - 6} textAnchor="middle" className="axis">{shortDate(p.week_start)}{partial(i) ? " (partial)" : ""}</text>
             <text x={pad + bw * i + bw / 2} y={y(p.prs_merged, maxMerged) - 4} textAnchor="middle" className="val">{p.prs_merged}</text>
           </g>
         ))}
         <path d={line} className="line" />
-        {ttm.map((v, i) => <circle key={i} cx={pad + bw * i + bw / 2} cy={y(v, maxTtm)} r={3} className="pt"><title>{hours(v)}</title></circle>)}
+        {ttm.map((v, i) => v == null ? null : <circle key={i} cx={pad + bw * i + bw / 2} cy={y(v, maxTtm)} r={3} className="pt"><title>{hours(v)}</title></circle>)}
       </svg>
     </div>
   );

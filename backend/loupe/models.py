@@ -113,6 +113,7 @@ class WorkItem(Base):
     closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     merged_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     merged_by: Mapped[str | None] = mapped_column(String(255))
+    closed_by: Mapped[str | None] = mapped_column(String(255))
     additions: Mapped[int] = mapped_column(Integer, default=0)
     deletions: Mapped[int] = mapped_column(Integer, default=0)
     changed_files: Mapped[int] = mapped_column(Integer, default=0)

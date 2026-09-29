@@ -120,6 +120,10 @@ def build_facts(cur: MetricsReport, base: MetricsReport) -> dict[str, Fact]:
         add(f"cur.committer.{cmt.actor}.commits", f"commits by {cmt.actor}", cmt.count)
     for a in cur.leaderboards.pr_authors[:TOP_N_FACTS]:
         add(f"cur.pr_author.{a.actor}.prs_merged", f"PRs merged authored by {a.actor}", a.count)
+    for mg in cur.leaderboards.mergers[:TOP_N_FACTS]:
+        add(f"cur.merger.{mg.actor}.prs_merged", f"PRs merged by {mg.actor}", mg.count)
+    for cl in cur.leaderboards.closers[:TOP_N_FACTS]:
+        add(f"cur.closer.{cl.actor}.closed", f"issues and unmerged PRs closed by {cl.actor}", cl.count)
     for i, w in enumerate(cur.weekly, start=1):
         add(f"cur.week.{i}.prs_merged", f"PRs merged in week {i} of window", w.prs_merged)
         add(f"cur.week.{i}.commits", f"commits in week {i} of window", w.commits)
@@ -353,7 +357,7 @@ def committer_churn(ctx: Context) -> Signal | None:
         kind="committer_churn",
         severity="warning" if change > -0.6 else "critical",
         title=f"Active committers down {abs(change):.0%}: {cur_n} vs {base_n}",
-        summary=f"{len(gone)} people who committed in the previous period have no commits in this one: {', '.join(gone[:6])}{'…' if len(gone) > 6 else ''}.",
+        summary=f"{len(gone)} people who committed in the previous period have no commits in this one: {', '.join(gone[:6])}{f' and {len(gone) - 6} more' if len(gone) > 6 else ''}.",
         value=float(cur_n),
         baseline=float(base_n),
         direction="down",

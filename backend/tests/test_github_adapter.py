@@ -8,7 +8,7 @@ import pytest
 import respx
 
 from loupe.adapters.base import AuthError, RateLimited, RepoNotFound, RepoRef
-from loupe.adapters.github import GitHubAdapter
+from loupe.adapters.github import GitHubAdapter, _issue_to_record
 
 URL = "https://api.github.test/graphql"
 REPO = RepoRef(owner="acme", name="widgets")
@@ -83,6 +83,24 @@ async def test_rate_limit_is_surfaced_with_reset(adapter):
     with pytest.raises(RateLimited) as exc:
         await adapter.get_repo_info(REPO)
     assert exc.value.reset_at is not None
+
+
+def _issue(closed_at, closers):
+    return {
+        "number": 7, "title": "bug", "url": "u", "createdAt": "2026-03-01T00:00:00Z", "updatedAt": "2026-03-05T00:00:00Z",
+        "closedAt": closed_at, "author": {"login": "erin"}, "labels": {"nodes": []},
+        "timelineItems": {"nodes": [{"actor": {"login": who} if who else None} for who in closers]},
+    }
+
+
+def test_closer_comes_from_last_closed_event():
+    assert _issue_to_record(_issue("2026-03-05T00:00:00Z", ["bob", "carol"])).closed_by == "carol"
+
+
+def test_reopened_issue_has_no_closer_and_ghost_actor_is_none():
+    assert _issue_to_record(_issue(None, ["bob"])).closed_by is None  # closed once, then reopened
+    assert _issue_to_record(_issue("2026-03-05T00:00:00Z", [None])).closed_by is None  # deleted account
+    assert _issue_to_record(_issue("2026-03-05T00:00:00Z", [])).closed_by is None
 
 
 def test_adapter_refuses_to_start_without_token():

@@ -49,6 +49,7 @@ query($owner: String!, $name: String!, $first: Int!, $after: String) {
         additions deletions changedFiles
         author { login }
         mergedBy { login }
+        timelineItems(itemTypes: [CLOSED_EVENT], last: 1) { nodes { ... on ClosedEvent { actor { login } } } }
         labels(first: 20) { nodes { name } }
         reviews(first: __REVIEWS_PER_PR__) {
           totalCount
@@ -68,6 +69,7 @@ query($owner: String!, $name: String!, $first: Int!, $after: String) {
       nodes {
         number title url createdAt updatedAt closedAt
         author { login }
+        timelineItems(itemTypes: [CLOSED_EVENT], last: 1) { nodes { ... on ClosedEvent { actor { login } } } }
         labels(first: 20) { nodes { name } }
       }
     }
@@ -195,6 +197,15 @@ def _login(node: dict | None) -> str | None:
     return (node or {}).get("login")
 
 
+def _closer(node: dict) -> str | None:
+    """Actor of the most recent ClosedEvent, only while the item is actually closed (a
+    reopened issue keeps its old ClosedEvent in the timeline)."""
+    if not node.get("closedAt"):
+        return None
+    events = (node.get("timelineItems") or {}).get("nodes") or []
+    return _login((events[-1] or {}).get("actor")) if events else None
+
+
 def _pr_to_records(node: dict) -> tuple[WorkItemRecord, list[ActivityRecord]]:
     number = node["number"]
     reviews = node.get("reviews") or {}
@@ -226,6 +237,7 @@ def _pr_to_records(node: dict) -> tuple[WorkItemRecord, list[ActivityRecord]]:
         closed_at=parse_iso(node.get("closedAt")),
         merged_at=parse_iso(node.get("mergedAt")),
         merged_by=_login(node.get("mergedBy")),
+        closed_by=_closer(node),
         additions=node.get("additions") or 0,
         deletions=node.get("deletions") or 0,
         changed_files=node.get("changedFiles") or 0,
@@ -246,6 +258,7 @@ def _issue_to_record(node: dict) -> WorkItemRecord:
         updated_at=parse_iso(node["updatedAt"]),
         closed_at=parse_iso(node.get("closedAt")),
         merged_at=None,
+        closed_by=_closer(node),
         labels=[lbl["name"] for lbl in (node.get("labels") or {}).get("nodes") or []],
     )
 

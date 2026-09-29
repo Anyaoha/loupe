@@ -33,6 +33,7 @@ class WorkItemRecord:
     closed_at: datetime | None
     merged_at: datetime | None
     merged_by: str | None = None
+    closed_by: str | None = None
     additions: int = 0
     deletions: int = 0
     changed_files: int = 0

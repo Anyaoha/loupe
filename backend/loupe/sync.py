@@ -74,14 +74,20 @@ async def sync_repository(repository_id: int, adapter: SourceAdapter, backfill_d
             st.last_run_stats = stats.as_dict()
     except Exception as exc:  # noqa: BLE001 - we persist and re-raise for the caller
         log.exception("sync failed for repository %s", repository_id)
-        with session_scope() as s:
-            st = s.get(SyncState, repository_id)
-            st.status = SyncStatus.ERROR
-            st.last_error = f"{type(exc).__name__}: {exc}"
-            st.last_finished_at = utcnow()
-            st.last_run_stats = stats.as_dict()
+        record_sync_error(repository_id, exc, stats)
         raise
     return stats
+
+
+def record_sync_error(repository_id: int, exc: Exception, stats: SyncStats | None = None) -> None:
+    """Persist a failed run so the API and UI show why, including failures before any fetch."""
+    with session_scope() as s:
+        st = s.get(SyncState, repository_id) or SyncState(repository_id=repository_id)
+        st.status = SyncStatus.ERROR
+        st.last_error = f"{type(exc).__name__}: {exc}"
+        st.last_finished_at = utcnow()
+        st.last_run_stats = (stats or SyncStats()).as_dict()
+        s.add(st)
 
 
 async def _sync_work_items(repository_id: int, adapter: SourceAdapter, ref: RepoRef, since: datetime, stats: SyncStats) -> None:
@@ -136,6 +142,7 @@ def _upsert_work_items(s: Session, repository_id: int, items: list[WorkItemRecor
             "closed_at": i.closed_at,
             "merged_at": i.merged_at,
             "merged_by": i.merged_by,
+            "closed_by": i.closed_by,
             "additions": i.additions,
             "deletions": i.deletions,
             "changed_files": i.changed_files,

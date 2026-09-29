@@ -6,11 +6,12 @@ from loupe.llm.base import LLMError, LLMRequest, LLMResponse
 class AnthropicProvider:
     system = "anthropic"
 
-    def __init__(self, api_key: str, model: str):
+    def __init__(self, api_key: str, model: str, workspace_id: str | None = None):
         if not api_key:
             raise LLMError("LOUPE_ANTHROPIC_API_KEY is required for the anthropic provider")
         self.model = model
-        self._client = AsyncAnthropic(api_key=api_key)
+        headers = {"anthropic-workspace-id": workspace_id} if workspace_id else None
+        self._client = AsyncAnthropic(api_key=api_key, default_headers=headers)
 
     async def complete(self, req: LLMRequest) -> LLMResponse:
         return await _messages_call(self._client, self.model, req)
@@ -34,7 +35,6 @@ async def _messages_call(client: AsyncAnthropic | AsyncAnthropicBedrock, model: 
         msg = await client.messages.create(
             model=model,
             max_tokens=req.max_tokens,
-            temperature=req.temperature,
             system=req.system,
             messages=[{"role": "user", "content": req.user}],
         )

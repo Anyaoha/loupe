@@ -23,6 +23,7 @@ def test_leaderboards(session, seeded_repo):
     assert [(c.actor, c.count) for c in lb.committers] == [("alice", 6), ("bob", 3), ("carol", 1)]
     assert [(c.actor, c.count) for c in lb.pr_authors] == [("alice", 2), ("bob", 2), ("carol", 1)]
     assert [(c.actor, c.count) for c in lb.mergers] == [("alice", 2), ("bob", 2), ("carol", 1)]
+    assert [(c.actor, c.count) for c in lb.closers] == [("bob", 2), ("carol", 1), ("erin", 1)]
     top = lb.lines_changed[0]
     assert (top.actor, top.additions, top.deletions, top.total, top.prs) == ("bob", 320, 100, 420, 2)
     r = lb.reviewers[0]

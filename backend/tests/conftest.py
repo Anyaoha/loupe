@@ -52,17 +52,18 @@ def seed_acme_widgets(session):
     session.flush()
     rid = repo.id
 
-    def pr(number, author, created, merged=None, closed=None, adds=0, dels=0, reviews=0, merged_by=None):
+    def pr(number, author, created, merged=None, closed=None, adds=0, dels=0, reviews=0, merged_by=None, closed_by=None):
         return WorkItem(
             repository_id=rid, kind=WorkItemKind.PULL_REQUEST, number=number, title=f"PR {number}", author=author,
             url=f"https://example.test/pr/{number}", created_at=created, updated_at=merged or closed or created,
-            closed_at=closed or merged, merged_at=merged, merged_by=merged_by, additions=adds, deletions=dels, review_count=reviews,
+            closed_at=closed or merged, merged_at=merged, merged_by=merged_by, closed_by=closed_by or merged_by,
+            additions=adds, deletions=dels, review_count=reviews,
         )
 
-    def issue(number, author, created, closed=None):
+    def issue(number, author, created, closed=None, closed_by=None):
         return WorkItem(
             repository_id=rid, kind=WorkItemKind.ISSUE, number=number, title=f"Issue {number}", author=author,
-            created_at=created, updated_at=closed or created, closed_at=closed,
+            created_at=created, updated_at=closed or created, closed_at=closed, closed_by=closed_by,
         )
 
     def commit(sha, actor, when):
@@ -87,16 +88,17 @@ def seed_acme_widgets(session):
         # opened before window, still open, stale (39.5 days old at window end)
         pr(107, "dave", d(19, month=2)),
         # opened in window, closed without merge inside window
-        pr(108, "carol", d(12), closed=d(13)),
+        pr(108, "carol", d(12), closed=d(13), closed_by="carol"),
         # merged outside the window: must not count
         pr(109, "alice", d(20, month=2), merged=d(25, month=2), adds=999, dels=999, reviews=1, merged_by="bob"),
         # Issues: 3 closed in window (turnaround 48h, 120h, 240h -> median 120), 1 opened & open
-        issue(201, "erin", d(1), closed=d(3)),
-        issue(202, "erin", d(5), closed=d(10)),
-        issue(203, "frank", d(10), closed=d(20)),
+        # Closers in window (issues + unmerged PR 108; merges excluded): bob 2, carol 1, erin 1
+        issue(201, "erin", d(1), closed=d(3), closed_by="bob"),
+        issue(202, "erin", d(5), closed=d(10), closed_by="erin"),
+        issue(203, "frank", d(10), closed=d(20), closed_by="bob"),
         issue(204, "frank", d(28)),
         # closed before window: must not count
-        issue(205, "erin", d(1, month=2), closed=d(2, month=2)),
+        issue(205, "erin", d(1, month=2), closed=d(2, month=2), closed_by="erin"),
     ]
     session.add_all(items)
 

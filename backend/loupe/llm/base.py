@@ -7,7 +7,6 @@ class LLMRequest:
     system: str
     user: str
     max_tokens: int = 1200
-    temperature: float = 0.2
 
 
 @dataclass

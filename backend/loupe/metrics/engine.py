@@ -83,6 +83,7 @@ def compute_metrics(s: Session, repo: Repository, start: datetime, end: datetime
             lines_changed=_lines_changed(merged),
             reviewers=reviews[:LEADERBOARD_SIZE],
             mergers=_top_counts([p["merged_by"] for p in merged]),
+            closers=_closers(s, rid, start, end),
         ),
         flow=Flow(
             time_to_merge=_duration_stats(ttm_hours),
@@ -188,6 +189,24 @@ def _committers(s: Session, rid: int, start: datetime, end: datetime) -> list[Ac
         .order_by(func.count().desc(), ActivityEvent.actor)
     ).all()
     return [ActorCount(actor=r.actor, count=r.n) for r in rows]
+
+
+def _closers(s: Session, rid: int, start: datetime, end: datetime) -> list[ActorCount]:
+    """Who closed issues, and PRs closed without merging. Merges are credited to mergers."""
+    rows = s.execute(
+        select(WorkItem.closed_by, func.count().label("n"))
+        .where(
+            WorkItem.repository_id == rid,
+            WorkItem.closed_at >= start,
+            WorkItem.closed_at < end,
+            WorkItem.merged_at.is_(None),
+            WorkItem.closed_by.is_not(None),
+        )
+        .group_by(WorkItem.closed_by)
+        .order_by(func.count().desc(), WorkItem.closed_by)
+        .limit(LEADERBOARD_SIZE)
+    ).all()
+    return [ActorCount(actor=r.closed_by, count=r.n) for r in rows]
 
 
 def _count_items(s: Session, rid: int, kind: str, col, start: datetime, end: datetime) -> int:

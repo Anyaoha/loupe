@@ -40,7 +40,7 @@ Loupe is four layers with one direction of dependency: **adapter → canonical s
 
 **Review capture cap.** The GraphQL query takes the first 50 reviews per PR. PRs with more than that log a warning and undercount. A follow-up page per PR would close it; I judged it not worth the extra call for the typical case.
 
-**Closer identity.** GitHub's GraphQL does not expose who closed an issue without walking the timeline, so there is no "top closers" leaderboard. "Top mergers" (from `mergedBy`) is there instead. Honest omission over a fabricated metric.
+**Closer identity.** GitHub's GraphQL has no `closedBy` field, so the issue and PR queries also ask for the last `ClosedEvent` in each timeline (`timelineItems(itemTypes: [CLOSED_EVENT], last: 1)`). That makes the queries more expensive but needs no extra calls. The closer is only kept while `closedAt` is set, because a reopened item still has its old event. Merged PRs are credited to mergers, not closers. Databases created before this change get the column added on startup, but existing rows only get a closer once the item changes again and is re-synced. A fresh backfill fills them all.
 
 **DB calls on the event loop.** Metrics endpoints are sync `def` routes, so FastAPI runs them in a threadpool. The insights route is `async` and does its handful of small SQLite reads inline; with Postgres and real concurrency I would move those to `run_in_threadpool` or switch to the async engine.
 

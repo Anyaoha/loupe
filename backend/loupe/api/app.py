@@ -16,7 +16,7 @@ from loupe.db import init_engine, session_scope
 from loupe.llm import build_provider
 from loupe.logging_setup import configure_logging
 from loupe.models import Repository
-from loupe.sync import sync_repository
+from loupe.sync import record_sync_error, sync_repository
 
 log = logging.getLogger(__name__)
 
@@ -63,7 +63,11 @@ class SyncManager:
         while True:
             rid = await self._queue.get()
             try:
-                adapter = build_adapter("github", self._settings)
+                try:
+                    adapter = build_adapter("github", self._settings)
+                except AdapterError as exc:
+                    record_sync_error(rid, exc)
+                    raise
                 try:
                     stats = await sync_repository(rid, adapter, self._settings.backfill_days)
                     log.info("sync ok repository_id=%s %s", rid, stats.as_dict())

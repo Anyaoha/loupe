@@ -28,6 +28,7 @@ def seed_demo(s: Session) -> Repository:
     if not created:
         return repo
     rng = random.Random(7)
+    closer_rng = random.Random(11)  # separate stream so adding closers left the original numbers unchanged
     now = utcnow().replace(minute=0, second=0, microsecond=0)
     t0 = now - timedelta(days=DAYS)
     repo.default_branch = "main"
@@ -83,8 +84,10 @@ def seed_demo(s: Session) -> Repository:
             opened = date + timedelta(hours=rng.randint(8, 18))
             turnaround = rng.lognormvariate(4.6, 0.6) if drift else rng.lognormvariate(3.9, 0.6)
             closed = opened + timedelta(hours=turnaround)
+            closer = LEAD if (drift and closer_rng.random() < 0.6) else closer_rng.choice(active)
             items.append(WorkItem(repository_id=repo.id, kind=WorkItemKind.ISSUE, number=10000 + issue_no, title=f"bug: {rng.choice(['timeout', '500 on save', 'wrong total'])} #{issue_no}", author=rng.choice(TEAM),
-                                  url=f"https://github.com/{DEMO_OWNER}/{DEMO_NAME}/issues/{10000 + issue_no}", created_at=opened, updated_at=min(closed, now), closed_at=None if closed > now else closed))
+                                  url=f"https://github.com/{DEMO_OWNER}/{DEMO_NAME}/issues/{10000 + issue_no}", created_at=opened, updated_at=min(closed, now), closed_at=None if closed > now else closed,
+                                  closed_by=None if closed > now else closer))
 
     s.add_all(items)
     s.add_all(events)

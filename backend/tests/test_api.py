@@ -1,5 +1,7 @@
 """End-to-end through the HTTP layer with the mock model provider."""
 
+import time
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -157,3 +159,20 @@ def test_track_repo_returns_202_then_200(client):
     assert r.headers["Location"].endswith("/repos/acme/widgets/sync")
     r = client.post("/api/v1/repos", json={"owner": "acme", "name": "widgets"})
     assert r.status_code == 200
+
+
+def test_default_window_insight_is_cached(client, tracked):
+    owner, name = tracked
+    assert client.post(f"/api/v1/repos/{owner}/{name}/insights").status_code == 201
+    assert client.post(f"/api/v1/repos/{owner}/{name}/insights").status_code == 200
+
+
+def test_missing_token_surfaces_as_sync_error(client):
+    client.post("/api/v1/repos", json={"owner": "acme", "name": "gadgets"})
+    for _ in range(50):
+        sync = client.get("/api/v1/repos/acme/gadgets/sync").json()["sync"]
+        if sync["status"] != "pending":
+            break
+        time.sleep(0.05)
+    assert sync["status"] == "error"
+    assert "LOUPE_GITHUB_TOKEN" in sync["last_error"]

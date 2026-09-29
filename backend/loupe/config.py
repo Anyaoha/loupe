@@ -26,6 +26,7 @@ class Settings(BaseSettings):
     llm_provider: Literal["anthropic", "bedrock", "mock"] = "anthropic"
     anthropic_api_key: SecretStr | None = None
     anthropic_model: str = "claude-sonnet-4-5"
+    anthropic_workspace_id: str | None = None
     bedrock_model: str = "anthropic.claude-sonnet-4-5-20250929-v1:0"
     aws_region: str = "us-east-1"
     llm_max_tokens: int = 1200

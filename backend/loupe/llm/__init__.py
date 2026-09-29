@@ -10,7 +10,7 @@ def build_provider(settings: Settings) -> LLMProvider:
 
     if settings.llm_provider == "anthropic":
         key = settings.anthropic_api_key.get_secret_value() if settings.anthropic_api_key else ""
-        return AnthropicProvider(api_key=key, model=settings.anthropic_model)
+        return AnthropicProvider(api_key=key, model=settings.anthropic_model, workspace_id=settings.anthropic_workspace_id)
     if settings.llm_provider == "bedrock":
         return BedrockProvider(model=settings.bedrock_model, region=settings.aws_region)
     raise ValueError(f"unknown llm provider: {settings.llm_provider}")

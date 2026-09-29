@@ -29,7 +29,7 @@ GitHub GraphQL ──► adapter ──► SQLite (canonical WorkItem / Activity
 
 ```bash
 cp .env.example .env            # leave the keys blank for now
-docker compose up --build       # API on :8000, UI on :8080
+docker compose up --build       # API on :8000, UI on :8080 (override with LOUPE_API_HOST_PORT / LOUPE_WEB_HOST_PORT in .env)
 open http://localhost:8080
 ```
 
@@ -85,7 +85,7 @@ curl -s localhost:8000/api/v1/insights/calibration | jq '{rated, brier_score, bu
 
 ## What the metrics mean and why these
 
-The assignment asks for one interesting insight over a period. Loupe computes the standard leaderboards (committers, PR authors, reviewers, mergers, lines changed) because they are table stakes, then focuses on the things that tell a manager something a leaderboard cannot:
+The assignment asks for one interesting insight over a period. Loupe computes the standard leaderboards (committers, PR authors, reviewers, mergers, closers, lines changed) because they are table stakes, then focuses on the things that tell a manager something a leaderboard cannot:
 
 | Signal | What it measures | Why it matters |
 |---|---|---|
@@ -114,7 +114,7 @@ Failed claims are still shown, struck through, with the actual value next to the
 ## Tests and evals
 
 ```bash
-make test          # 38 tests: metrics correctness against hand-computed fixtures, signal thresholds,
+make test          # 42 tests: metrics correctness against hand-computed fixtures, signal thresholds,
                    # verifier adversarial cases, GitHub adapter pagination/errors (mocked), API semantics,
                    # feedback + calibration
 make evals         # prompt eval harness, deterministic mock provider, no network

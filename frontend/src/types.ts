@@ -23,7 +23,7 @@ export interface WeeklyPoint { week_start: string; commits: number; prs_opened: 
 
 export interface MetricsReport {
   repository: RepoOut; window: Window; coverage: Coverage; totals: Totals;
-  leaderboards: { committers: ActorCount[]; pr_authors: ActorCount[]; lines_changed: ActorLines[]; reviewers: ReviewerRow[]; mergers: ActorCount[] };
+  leaderboards: { committers: ActorCount[]; pr_authors: ActorCount[]; lines_changed: ActorLines[]; reviewers: ReviewerRow[]; mergers: ActorCount[]; closers: ActorCount[] };
   flow: { time_to_merge: DurationStats; issue_turnaround: DurationStats; merged_without_review: number; merged_without_review_ratio: number | null };
   open_state: { open_prs: number; stale_prs: number; stale_threshold_days: number; oldest_open: StalePR[] };
   concentration: { review_top1_share: number | null; review_top2_share: number | null; commit_top1_share: number | null; commit_bus_factor: number | null };
