@@ -1,9 +1,14 @@
 """Pydantic models for the HTTP API. These are the contract; storage models are not exposed."""
 
 from datetime import datetime
-from typing import Literal
+from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field
+
+from loupe.timeutil import ensure_utc
+
+# Rows read straight from SQLite come back naive; serialise them as UTC so clients don't read local time.
+UtcDatetime = Annotated[datetime, AfterValidator(ensure_utc)]
 
 
 class RepoOut(BaseModel):
@@ -250,8 +255,8 @@ class FeedbackOut(BaseModel):
     confidence: float
     prompt_version: str
     model: str
-    created_at: datetime
-    updated_at: datetime
+    created_at: UtcDatetime
+    updated_at: UtcDatetime
 
 
 class CalibrationBucket(BaseModel):
@@ -287,5 +292,5 @@ class LlmTraceOut(BaseModel):
     estimated_cost_usd: float
     status: str
     error_type: str | None
-    created_at: datetime
+    created_at: UtcDatetime
 

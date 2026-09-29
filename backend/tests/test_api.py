@@ -112,6 +112,7 @@ def test_llm_traces_recorded(client, tracked):
     traces = r.json()
     assert traces and traces[0]["gen_ai_system"] == "mock"
     assert traces[0]["purpose"] == "insight"
+    assert traces[0]["created_at"].endswith(("Z", "+00:00"))
     assert traces[0]["status"] == "ok"
 
 
