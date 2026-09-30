@@ -2,6 +2,8 @@
   "name": "loupe-ui",
   "private": true,
   "version": "0.1.0",
+  "author": "Uchenna (Uche) Anyaoha <33767533+Anyaoha@users.noreply.github.com> (https://www.ucheanyaoha.com)",
+  "license": "UNLICENSED",
   "type": "module",
   "scripts": {
     "dev": "vite",

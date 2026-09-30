@@ -105,6 +105,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         title="Loupe",
         version=__version__,
         description="A small lens on team collaboration signals. Metrics, drift signals, and LLM narratives with verified evidence.",
+        contact={"name": "Uchenna (Uche) Anyaoha", "url": "https://www.ucheanyaoha.com", "email": "33767533+Anyaoha@users.noreply.github.com"},
+        license_info={"name": "All rights reserved (evaluation use permitted)", "url": "https://github.com/Anyaoha/loupe/blob/main/LICENSE"},
         lifespan=lifespan,
     )
     app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origins, allow_methods=["GET", "POST"], allow_headers=["*"])
