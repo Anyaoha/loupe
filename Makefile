@@ -1,4 +1,4 @@
-.PHONY: install dev test evals evals-live seed-demo up down lint
+.PHONY: install dev test evals evals-live seed-demo up down
 
 PY := .venv/bin/python
 
