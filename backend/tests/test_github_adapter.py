@@ -7,7 +7,8 @@ import httpx
 import pytest
 import respx
 
-from loupe.adapters.base import AuthError, RateLimited, RepoNotFound, RepoRef
+from loupe.adapters import github as github_module
+from loupe.adapters.base import AdapterError, AuthError, RateLimited, RepoNotFound, RepoRef
 from loupe.adapters.github import GitHubAdapter, _issue_to_record
 
 URL = "https://api.github.test/graphql"
@@ -83,6 +84,37 @@ async def test_rate_limit_is_surfaced_with_reset(adapter):
     with pytest.raises(RateLimited) as exc:
         await adapter.get_repo_info(REPO)
     assert exc.value.reset_at is not None
+
+
+@respx.mock
+async def test_gateway_timeout_is_retried_then_succeeds(adapter, monkeypatch):
+    monkeypatch.setattr(github_module, "RETRY_BACKOFF_SECONDS", 0)
+    route = respx.post(URL).mock(side_effect=[
+        httpx.Response(504),
+        httpx.Response(502),
+        httpx.Response(200, json={"data": {"repository": {"defaultBranchRef": {"name": "main"}}}}),
+    ])
+    info = await adapter.get_repo_info(REPO)
+    assert info.default_branch == "main"
+    assert route.call_count == 3
+
+
+@respx.mock
+async def test_gateway_timeout_gives_up_after_max_attempts(adapter, monkeypatch):
+    monkeypatch.setattr(github_module, "RETRY_BACKOFF_SECONDS", 0)
+    route = respx.post(URL).mock(return_value=httpx.Response(504))
+    with pytest.raises(AdapterError, match="HTTP 504"):
+        await adapter.get_repo_info(REPO)
+    assert route.call_count == github_module.MAX_ATTEMPTS
+
+
+@respx.mock
+async def test_client_errors_are_not_retried(adapter, monkeypatch):
+    monkeypatch.setattr(github_module, "RETRY_BACKOFF_SECONDS", 0)
+    route = respx.post(URL).mock(return_value=httpx.Response(401))
+    with pytest.raises(AuthError):
+        await adapter.get_repo_info(REPO)
+    assert route.call_count == 1
 
 
 def _issue(closed_at, closers):

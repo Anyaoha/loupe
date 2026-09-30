@@ -9,6 +9,7 @@ All user-supplied values travel as GraphQL variables, never interpolated into th
 The endpoint URL comes from settings, not from the request, so there is no SSRF surface.
 """
 
+import asyncio
 import logging
 from collections.abc import AsyncIterator
 from datetime import UTC, datetime
@@ -32,6 +33,10 @@ log = logging.getLogger(__name__)
 
 PAGE_SIZE = 50
 REVIEWS_PER_PR = 50
+# GitHub answers heavy GraphQL pages with 502/503/504 now and then; the same request usually works a moment later.
+RETRY_STATUSES = {502, 503, 504}
+MAX_ATTEMPTS = 3
+RETRY_BACKOFF_SECONDS = 2.0
 
 _REPO_QUERY = """
 query($owner: String!, $name: String!) {
@@ -122,8 +127,22 @@ class GitHubAdapter:
     async def aclose(self) -> None:
         await self._client.aclose()
 
+    async def _post(self, query: str, variables: dict) -> httpx.Response:
+        for attempt in range(1, MAX_ATTEMPTS + 1):
+            try:
+                resp = await self._client.post(self._url, json={"query": query, "variables": variables}, headers=self._headers)
+            except httpx.TimeoutException:
+                if attempt == MAX_ATTEMPTS:
+                    raise AdapterError(f"GitHub GraphQL timed out after {MAX_ATTEMPTS} attempts") from None
+            else:
+                if resp.status_code not in RETRY_STATUSES or attempt == MAX_ATTEMPTS:
+                    return resp
+            log.warning("GitHub GraphQL transient failure, retrying (attempt %d/%d)", attempt, MAX_ATTEMPTS)
+            await asyncio.sleep(RETRY_BACKOFF_SECONDS * attempt)
+        raise AssertionError("unreachable")
+
     async def _graphql(self, query: str, variables: dict) -> dict:
-        resp = await self._client.post(self._url, json={"query": query, "variables": variables}, headers=self._headers)
+        resp = await self._post(query, variables)
         if resp.status_code == 401:
             raise AuthError("GitHub rejected the token")
         if resp.status_code in (403, 429) and resp.headers.get("x-ratelimit-remaining") == "0":
