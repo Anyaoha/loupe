@@ -82,6 +82,8 @@ h3 { margin: 6px 0 4px; font-size: 15px; }
 .evidence li.ok .mark { color: var(--ok); } .evidence li.bad .mark { color: var(--crit); }
 .evidence li.bad .claim { text-decoration: line-through; color: var(--muted); }
 .factid { color: var(--muted); }
+.evidence.actions li { grid-template-columns: 18px 1fr; }
+.evidence.actions .factid, .evidence.actions .why { grid-column: 2; }
 .why { grid-column: 2 / -1; color: var(--crit); }
 .insight-foot { margin-top: 12px; font-size: 11px; font-family: var(--mono); }
 .feedback { margin-top: 12px; flex-wrap: wrap; }
@@ -115,4 +117,5 @@ td.title { max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-sp
 .board td:nth-child(3) { white-space: nowrap; color: var(--muted); font-size: 12px; text-align: right; }
 .tracetable { font-size: 12px; margin-top: 10px; }
 .tracetable tr.bad td { color: var(--crit); }
+.tracetable .stop { color: var(--warn); }
 .tracetable .why { display: block; max-width: 360px; white-space: normal; }

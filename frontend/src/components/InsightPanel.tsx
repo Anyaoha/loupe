@@ -35,7 +35,7 @@ export function InsightPanel({ insight, loading, error, onGenerate, onHoverFacts
             <div className="rootcause">
               <span className="label">Root-cause hypothesis</span>
               <p>{insight.root_cause.hypothesis}</p>
-              <small>model's own confidence in this hypothesis: {(insight.root_cause.model_confidence * 100).toFixed(0)}%</small>
+              <small title="The model's self-reported confidence in this hypothesis only. It does not feed the computed confidence below.">model's guess about this cause: {(insight.root_cause.model_confidence * 100).toFixed(0)}% (shown, not used)</small>
             </div>
           )}
 
