@@ -36,7 +36,7 @@ Loupe is four layers with one direction of dependency: **adapter → canonical s
 
 **Confidence is measured, not yet corrected.** The penalty and cap formula is transparent, and the feedback endpoint now measures how well it matches reality, but nothing feeds that back into the displayed number. Next step once there are enough verdicts (a few dozen per band): fit an isotonic or Platt mapping per prompt version and show both raw and calibrated confidence. Feedback is also unauthenticated and one-verdict-per-narrative; a real deployment needs reviewer identity and would weigh disagreement between reviewers.
 
-**Sync runs inside the API process.** One asyncio worker, in-memory de-dup, no retry with backoff on rate limits (it logs and waits for the next tick). Fine for a demo and for one instance; for more than one replica I would move sync to a separate worker with a real queue and per-repo locks, and persist the rate-limit reset time so restarts do not re-hammer the API.
+**Sync runs inside the API process.** One asyncio worker, in-memory de-dup, no retry with backoff on rate limits (it logs and waits for the next tick). Transient GitHub failures (HTTP 502/503/504 and timeouts) are retried per request, up to 3 attempts with a short linear backoff. Fine for a demo and for one instance; for more than one replica I would move sync to a separate worker with a real queue and per-repo locks, and persist the rate-limit reset time so restarts do not re-hammer the API.
 
 **Review capture cap.** The GraphQL query takes the first 50 reviews per PR. PRs with more than that log a warning and undercount. A follow-up page per PR would close it; I judged it not worth the extra call for the typical case.
 

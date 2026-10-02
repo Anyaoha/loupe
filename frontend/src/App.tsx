@@ -120,6 +120,10 @@ export default function App() {
           </div>
         </main>
       )}
+      <footer className="footer">
+        <img src="/anyaoha.png" alt="" width={16} height={16} />
+        <span>Built by Uchenna (Uche) Anyaoha · <a href="https://www.ucheanyaoha.com" target="_blank" rel="noreferrer">ucheanyaoha.com</a> · <a href="https://github.com/Anyaoha" target="_blank" rel="noreferrer">github.com/Anyaoha</a> · © 2026</span>
+      </footer>
     </div>
   );
 }

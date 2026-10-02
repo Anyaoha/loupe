@@ -23,6 +23,8 @@ GitHub GraphQL ──► adapter ──► SQLite (canonical WorkItem / Activity
                                                         React UI (optional)
 ```
 
+Rendered version: [`architecture.png`](architecture.png). Solid lines: how an answer is made. Dotted: what's recorded for checking later. Orange: the only AI step. Green: checks on it. Blue: plain code. Grey: external systems and storage.
+
 ## 60-second quickstart
 
 **Option A: Docker, no keys.** Serves a synthetic demo repository so everything is clickable immediately.
@@ -114,8 +116,8 @@ Failed claims and ungrounded actions are still shown, marked, with the reason ne
 ## Tests and evals
 
 ```bash
-make test          # 46 tests: metrics correctness against hand-computed fixtures, signal thresholds,
-                   # verifier adversarial cases, GitHub adapter pagination/errors (mocked), API semantics,
+make test          # 49 tests: metrics correctness against hand-computed fixtures, signal thresholds,
+                   # verifier adversarial cases, GitHub adapter pagination/errors/retries (mocked), API semantics,
                    # feedback + calibration
 make evals         # prompt eval harness, deterministic mock provider, no network
 make evals-live    # same harness against the configured real model (costs a few cents)
@@ -143,3 +145,7 @@ frontend/        React + Vite + TypeScript, no UI framework, hand-rolled SVG
 ```
 
 See `NOTES.md` for architecture decisions, trade-offs, what I'd do next, and how AI tools were used. The three load-bearing decisions have their own records in `docs/adr/`: [GraphQL over REST](docs/adr/0001-github-graphql-over-rest.md), [computed confidence](docs/adr/0002-computed-confidence.md), [canonical data model](docs/adr/0003-canonical-data-model.md).
+
+---
+
+<img src="frontend/public/anyaoha.png" alt="" width="20" align="left" />&nbsp;Built by **Uchenna (Uche) Anyaoha** · [ucheanyaoha.com](https://www.ucheanyaoha.com) · [github.com/Anyaoha](https://github.com/Anyaoha). © 2026, all rights reserved; viewing and running for evaluation is permitted. See [LICENSE](LICENSE).
